@@ -12,13 +12,21 @@ float glorot_uniform(int nb_input, int nb_output) {
 
 // Initialize a layer
 void initialize_layer(Layer *layer, int input_size, int output_size) {
+
+    // Check the input/output parameters
+    if (input_size < 0 || output_size < 0)
+    {
+       perror("Incorrect input/output values"); 
+       exit(EXIT_FAILURE); 
+    }
+
     layer->input_size = input_size;
     layer->output_size = output_size;
 
-    // Calculate total number of weights
+    // Calculate total number of weights = input_size * output_size
     int connections = input_size * output_size;
 
-    // Allocate memory
+    // Allocate memory for weights
     layer->weights = malloc(sizeof(float) * connections);
     if (!layer->weights) {
         perror("Failed to allocate memory for weights");
@@ -28,7 +36,7 @@ void initialize_layer(Layer *layer, int input_size, int output_size) {
     layer->biases = malloc(sizeof(float) * output_size);
     if (!layer->biases) {
         perror("Failed to allocate memory for biases");
-        free(layer->weights); // Libérer les poids avant de quitter
+        free(layer->weights);
         exit(EXIT_FAILURE);
     }
 

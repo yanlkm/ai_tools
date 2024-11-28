@@ -52,9 +52,10 @@ void initialize_layer(Layer *layer, int input_size, int output_size) {
 
 // Initialize a network
 void initialize_network(Network *network, Layer **layers, int total_layers, int input_layer_idx, int output_layer_idx) {
+    // Check if the parameters are incorrects
     if (total_layers <= 0 || !layers || input_layer_idx < 0 || output_layer_idx < 0) {
-        fprintf(stderr, "Invalid parameters to initialize_network\n");
-        return;
+        perror("Incorrects inputs");
+        exit(EXIT_FAILURE);
     }
 
     network->layers = layers;
@@ -63,12 +64,15 @@ void initialize_network(Network *network, Layer **layers, int total_layers, int 
     network->output_layer = layers[output_layer_idx];
     network->nb_hidden_layers = total_layers - 2;
 
+    // if the neuron needs to have hidden layer
     if (network->nb_hidden_layers > 0) {
+        // allocate memory for hidden layers
         network->hidden_layers = malloc(sizeof(Layer *) * network->nb_hidden_layers);
         if (!network->hidden_layers) {
             perror("Failed to allocate memory for hidden layers");
             exit(EXIT_FAILURE);
         }
+
         for (int i = 0, j = 0; i < total_layers; i++) {
             if (i != input_layer_idx && i != output_layer_idx) {
                 network->hidden_layers[j++] = layers[i];
@@ -79,41 +83,58 @@ void initialize_network(Network *network, Layer **layers, int total_layers, int 
     }
 }
 
-// Free a layer
+
+// Free a single layer
 void free_layer(Layer *layer) {
     if (layer) {
         free(layer->weights);
         free(layer->biases);
+        free(layer); // Libère la mémoire allouée pour la couche elle-même
     }
+}
+
+// Free all layers in a network
+void free_layers(Layer **layers, int total_layers) {
+    for (int i = 0; i < total_layers; i++) {
+        free_layer(layers[i]); 
+    }
+    free(layers); 
 }
 
 // Free a network
 void free_network(Network *network) {
-    if (network->hidden_layers) free(network->hidden_layers);
+    free_layers(network->layers, network->total_layers);
+    if (network->hidden_layers) {
+        free(network->hidden_layers);
+    }
+    free(network); 
 }
 
 // Main function for testing
 int main(int argc, char **argv) {
-    srand(time(NULL)); // Initialize random seed
+    srand(time(NULL));
 
-    // Example network initialization
-    Layer input_layer, hidden_layer, output_layer;
-    initialize_layer(&input_layer, 3, 5);
-    initialize_layer(&hidden_layer, 5, 4);
-    initialize_layer(&output_layer, 4, 2);
+    // Allocate and initialize layers 
+    Layer **layers = malloc(sizeof(Layer *) * 4);
+    layers[0] = malloc(sizeof(Layer));
+    layers[1] = malloc(sizeof(Layer));
+    layers[2] = malloc(sizeof(Layer));
+    layers[3] = malloc(sizeof(Layer));
+    
+    initialize_layer(layers[0], 3, 5);
+    initialize_layer(layers[1], 5, 4);
+    initialize_layer(layers[2], 4, 2);
+    initialize_layer(layers[3],2,4); 
 
-    Layer *layers[] = {&input_layer, &hidden_layer, &output_layer};
-    Network network;
-    initialize_network(&network, layers, 3, 0, 2);
+    // Allocate and initialize network
+    Network *network = malloc(sizeof(Network));
+    initialize_network(network, layers, 4, 0, 3);
 
-    // Test the network structure
-    printf("Network has %d total layers and %d hidden layers\n", network.total_layers, network.nb_hidden_layers);
+    // Test the network 
+    printf("Network has %d total layers and %d hidden layers\n", network->total_layers, network->nb_hidden_layers);
 
-    // Free resources
-    free_layer(&input_layer);
-    free_layer(&hidden_layer);
-    free_layer(&output_layer);
-    free_network(&network);
+    // Free all resources
+    free_network(network);
 
     return 0;
 }

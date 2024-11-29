@@ -121,6 +121,27 @@ void softmax(float * input_values, int output_layer_size) {
 
 }
 
+// Forward propagation 
+void forward_propagation(Layer * layer, float * input, float * output) {
+    int previous_output_nodes = layer->input_size; 
+    int current_output_nodes = layer->output_size; 
+
+    if (!output|| !input) {
+        perror("Error output/input array empty !"); 
+        exit(EXIT_FAILURE); 
+    }
+    for (int i = 0; i<current_output_nodes; i++) {
+        // Start to initialize outputs with biases
+        output[i] = layer->biases[i];  
+        for (int j = 0 ; j < previous_output_nodes; j ++ ){
+            // associate 
+            output[i] =+ input[j] * layer->weights[ j * current_output_nodes + i ];
+        }
+    }
+}
+
+
+
 // FREE FUNCTIONS 
 
 // Free a single layer

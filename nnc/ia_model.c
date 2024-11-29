@@ -4,12 +4,14 @@
 #include <time.h>
 #include "ia_model.h"
 
+
+// INITIALIZATION
+
 // Glorot uniform initialization
 float glorot_uniform(int nb_input, int nb_output) {
     float limit = sqrt(6.0 / (nb_input + nb_output)); 
     return ((float)rand() / RAND_MAX) * limit * 2 - limit;
 }
-
 // Initialize a layer
 void initialize_layer(Layer *layer, int input_size, int output_size) {
 
@@ -83,6 +85,43 @@ void initialize_network(Network *network, Layer **layers, int total_layers, int 
     }
 }
 
+// FORWARD 
+
+// Leaky ReLU 
+void leaky_relu(float * input_values, int hidden_layer_size, float coefficient) {
+ if (coefficient <= 0 || coefficient >= 0.1) {
+    perror("Bad use of LeakyRelu coefficient"); 
+    exit(EXIT_FAILURE); 
+ }
+ for (int i = 0; i < hidden_layer_size ; i++) {
+     input_values[i] = (input_values[i] < 0 ) ? input_values[i] * coefficient : input_values[i]; 
+
+ }
+}
+
+// Softmax
+void softmax(float * input_values, int output_layer_size) {
+    // Define a sum
+    int sum = 0; 
+    // define a max
+    float max = input_values[0] ; 
+    for(int i = 1; i<output_layer_size; i++) 
+        max = input_values[i] > max ? input_values[i] : max; 
+
+    // collect the sum apply
+    for(int i = 0; i<output_layer_size; i++) {
+        input_values[i]=exp(input_values[i]- max); 
+        sum =+ input_values[i]; 
+    }
+
+    // assign values applied to softmax 
+    for(int i = 0; i<output_layer_size; i++) {
+        input_values[i] = input_values[i]/sum; 
+    }
+
+}
+
+// FREE FUNCTIONS 
 
 // Free a single layer
 void free_layer(Layer *layer) {

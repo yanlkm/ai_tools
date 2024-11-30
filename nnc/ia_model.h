@@ -47,13 +47,12 @@ void forward_pass(Network * network, float * input_values, float ** output_value
 // if logit z > 0 then leaky_relu_derivative is 1 if not is coefficient
 float leaky_relu_derivative( float coefficient, float logit);  
 // output gradient : call it once 
-void output_gradient(float * output_values, float * output_gradient, int label); 
+void output_gradient(float * output_values, float * output_gradient, float label, int output_size); 
 
 // Activation gradient is deravative of loss function by activated value : perform first the sum of the logit gradiant of the next layer with the related nodes weights to these logits dL/dy(l-1) = dL/dzl * w 
-float activation_value_gradient(float * computed_values_gradient, float derivative_activation_value ); 
-
+float activation_value_gradient(float computed_gradient, float derivative_activation_value) ;
 ///
 // Computed value gradient is the derivative of loss function by computed value : the product of the activation of "next" layer value (l+1) with the derivative activation function value dL/dzl = dL/dy(l+1) * dy/dz , dy/dz depends on the "logit" (z) value (ex : if z < 0 => derivative coeff is applied if not, is not) 
 float computed_value_gradient(float activated_value_gradient, float derivative_lrelu_coefficient, float  logit ); 
 // backward propagation on specific Layer, with activated_values_gradient array, 
-void backward_propagation(Layer * layer, float * input_values, float * next_layer_activated_gradients, float * current_layer_activated_gradients);  
+void backward_propagation(Layer *layer, float *input_values, float *next_layer_activated_gradients, float *current_layer_activated_gradients, float derivative_lrelu_coefficient, float learning_rate);

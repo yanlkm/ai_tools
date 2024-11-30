@@ -231,14 +231,80 @@ void forward_pass(Network *network, float *input_values, float **output_values, 
 }
 
 
-// RESULTS AND LOSS 
-
+// BACKWARD
 // Output gradient
-void output_gradient(float * output_values, float * output_gradient, int label) {
-
-
-
+void output_gradient(float *output_values, float *output_gradient, float label, int output_size) {
+    if (!output_values || !output_gradient || output_size <= 0) {
+        perror("Incorrect output values, size or gradient");
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < output_size; i++) {
+        output_gradient[i] = output_values[i] - (i == (int)label ? 1.0f : 0.0f);
+    }
 }
+
+// Leaky ReLU derivative
+float leaky_relu_derivative(float coefficient, float logit) {
+    return (logit > 0) ? 1.0f : coefficient;
+}
+
+// Activation value gradient
+float activation_value_gradient(float computed_gradient, float derivative_activation_value) {
+    if (derivative_activation_value == 0.0f) {
+        perror("Derivative activation value cannot be zero");
+        exit(EXIT_FAILURE);
+    }
+    return computed_gradient * derivative_activation_value;
+}
+
+// Computed value gradient
+float computed_value_gradient(float activated_gradient, float derivative_lrelu_coefficient, float logit) {
+    float leaky_relu_grad = leaky_relu_derivative(derivative_lrelu_coefficient, logit);
+    return activated_gradient * leaky_relu_grad;
+}
+
+// Backward propagation
+void backward_propagation(Layer *layer, float *input_values, float *next_layer_activated_gradients,
+                          float *current_layer_activated_gradients, float derivative_lrelu_coefficient, float learning_rate) {
+    if (!layer || !input_values || !next_layer_activated_gradients || !current_layer_activated_gradients) {
+        perror("Invalid arguments for backward_propagation");
+        exit(EXIT_FAILURE);
+    }
+
+    int previous_output_nodes = layer->input_size;
+    int current_output_nodes = layer->output_size;
+
+    // STEP 1: Compute the gradient of the loss function with respect to the activated values
+    for (int i = 0; i < current_output_nodes; i++) {
+        float sum = 0.0f;
+        for (int j = 0; j < current_output_nodes; j++) {
+            sum += next_layer_activated_gradients[j] * layer->weights[j * current_output_nodes + i];
+        }
+        current_layer_activated_gradients[i] = activation_value_gradient(sum, 1.0f); // Use 1.0f for identity derivative
+    }
+
+    // STEP 2: Compute the gradient of the loss function with respect to the computed values
+    for (int i = 0; i < current_output_nodes; i++) {
+        current_layer_activated_gradients[i] = computed_value_gradient(current_layer_activated_gradients[i],
+                                                                       derivative_lrelu_coefficient,
+                                                                       layer->biases[i]); // Logit approx from biases
+    }
+
+    // UPDATE WEIGHTS AND BIASES
+    // Gradient with respect to weights
+    for (int i = 0; i < previous_output_nodes; i++) {
+        for (int j = 0; j < current_output_nodes; j++) {
+            layer->weights[i * current_output_nodes + j] -=
+                learning_rate * current_layer_activated_gradients[j] * input_values[i];
+        }
+    }
+
+    // Gradient with respect to biases
+    for (int i = 0; i < current_output_nodes; i++) {
+        layer->biases[i] -= learning_rate * current_layer_activated_gradients[i];
+    }
+}
+
 
 // FREE FUNCTIONS 
 
@@ -247,7 +313,7 @@ void free_layer(Layer *layer) {
     if (layer) {
         free(layer->weights);
         free(layer->biases);
-        free(layer); // Libère la mémoire allouée pour la couche elle-même
+        free(layer); 
     }
 }
 
@@ -317,6 +383,51 @@ int main(int argc, char **argv) {
     printf("Final output values after softmax:\n");
     for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
         printf("%f ", output_values[network->total_layers - 1][i]);
+    }
+    printf("\n");
+
+    // Perform backward pass
+
+    printf("\nStarting Backward Propagation...\n");
+
+    // Target label for the output layer : 2
+    float label = 2;
+
+    // Allocate gradients for each layer
+    float **gradients = malloc(network->total_layers * sizeof(float *));
+    for (int i = 0; i < network->total_layers; i++) {
+        gradients[i] = calloc(network->layers[i]->output_size, sizeof(float));
+    }
+
+    // Compute output gradient
+    output_gradient(output_values[network->total_layers - 1], gradients[network->total_layers - 1], label,
+                    network->layers[network->total_layers - 1]->output_size);
+
+    // Backward propagation through the network
+    for (int layer_idx = network->total_layers - 1; layer_idx > 0; layer_idx--) {
+        backward_propagation(
+            network->layers[layer_idx],
+            output_values[layer_idx - 1],  // Input to current layer
+            gradients[layer_idx],         // Gradients from the next layer
+            gradients[layer_idx - 1],     // Gradients for the current layer
+            leaky_relu_coefficient,
+            0.01                          // Learning rate
+        );
+    }
+
+    // Display updated weights and biases of the last layer
+    printf("\nUpdated weights of the last layer:\n");
+    Layer *last_layer = network->layers[network->total_layers - 1];
+    for (int i = 0; i < last_layer->input_size; i++) {
+        for (int j = 0; j < last_layer->output_size; j++) {
+            printf("%f ", last_layer->weights[i * last_layer->output_size + j]);
+        }
+        printf("\n");
+    }
+
+    printf("\nUpdated biases of the last layer:\n");
+    for (int i = 0; i < last_layer->output_size; i++) {
+        printf("%f ", last_layer->biases[i]);
     }
     printf("\n");
 

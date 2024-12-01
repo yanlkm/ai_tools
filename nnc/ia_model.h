@@ -1,6 +1,7 @@
 #define HIDDEN_LAYERS 2
 #define INPUT_SIZE 784
 #define OUTPUT_SIZE 9
+#include <stdbool.h>
 
 typedef struct neural_layer {
 
@@ -50,9 +51,10 @@ float leaky_relu_derivative( float coefficient, float logit);
 void output_gradient(float * output_values, float * output_gradient, float label, int output_size); 
 
 // Activation gradient is deravative of loss function by activated value : perform first the sum of the logit gradiant of the next layer with the related nodes weights to these logits dL/dy(l-1) = dL/dzl * w 
-float activation_value_gradient(float computed_gradient, float derivative_activation_value) ;
-///
+float activation_value_gradient(float next_layer_gradient, float *weights, int current_output_nodes) ;///
 // Computed value gradient is the derivative of loss function by computed value : the product of the activation of "next" layer value (l+1) with the derivative activation function value dL/dzl = dL/dy(l+1) * dy/dz , dy/dz depends on the "logit" (z) value (ex : if z < 0 => derivative coeff is applied if not, is not) 
 float computed_value_gradient(float activated_value_gradient, float derivative_lrelu_coefficient, float  logit ); 
 // backward propagation on specific Layer, with activated_values_gradient array, 
-void backward_propagation(Layer *layer, float *input_values, float *next_layer_activated_gradients, float *current_layer_activated_gradients, float derivative_lrelu_coefficient, float learning_rate);
+void backward_propagation(Layer *layer, float *input_values, float *next_layer_activated_gradients, float *current_layer_activated_gradients, float derivative_lrelu_coefficient, float learning_rate, bool isLastLayer);
+// backward pass : includes output_values, leaky_relu_coefficient, learning_rate and label
+void backward_pass(Network * network, float ** output_values, float leaky_relu_coefficient, float learning_rate, float label);

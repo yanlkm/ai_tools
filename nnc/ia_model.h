@@ -66,4 +66,4 @@ void load_train(Network *network, char *filename);
 // save a network trained
 void save_train(Network *network, char *filename); 
 // check if saving file has saves or not
-void is_saved(char *filename);
+bool is_saved(char *filename);

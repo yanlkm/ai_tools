@@ -58,3 +58,5 @@ float computed_value_gradient(float activated_value_gradient, float derivative_l
 void backward_propagation(Layer *layer, float *input_values, float *next_layer_activated_gradients, float *current_layer_activated_gradients, float derivative_lrelu_coefficient, float learning_rate, bool isLastLayer);
 // backward pass : includes output_values, leaky_relu_coefficient, learning_rate and label
 void backward_pass(Network * network, float ** output_values, float leaky_relu_coefficient, float learning_rate, float label);
+// train and save training
+void training(Network *network, float learning_rate, int epochs, float ***output_values, char * save_file_name);

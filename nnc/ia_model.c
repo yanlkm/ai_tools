@@ -227,6 +227,7 @@ void output_gradient(float *output_values, float *output_gradient, float label, 
         perror("Incorrect output values, size or gradient");
         exit(EXIT_FAILURE);
     }
+    // compute outgradient
     for (int i = 0; i < output_size; i++) {
         output_gradient[i] = output_values[i] - (i == (int)label ? 1.0f : 0.0f);
     }
@@ -360,7 +361,149 @@ void backward_pass(Network *network, float **output_values, float leaky_relu_coe
     printf("\nBackward Propagation Completed.\n");
 }
 
-void training(Network *network, float learning_rate, int epochs, float ***output_values) {
+
+// TRAINING
+
+// SAVE TRAINING
+
+/// Load training from file and initialize the network
+void load_train(Network *network, char *filename) {
+    // Open the file
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        perror("Failed to open file for loading");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read general information about the network
+    if (fscanf(file, "%d %d", &(network)->nb_hidden_layers, &(network)->total_layers) != 2) {
+        perror("Failed to read network metadata");
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
+
+    // Allocate memory for the layers array
+    (network)->layers = malloc(sizeof(Layer *) * (network)->total_layers);
+    if (!(network)->layers) {
+        perror("Failed to allocate memory for layers");
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
+
+    // Read each layer's information and allocate memory for weights and biases
+    for (int i = 0; i < (network)->total_layers; i++) {
+        // Allocate memory for the current layer
+        (network)->layers[i] = malloc(sizeof(Layer));
+        Layer *layer = (network)->layers[i];
+        if (!layer) {
+            perror("Failed to allocate memory for layer");
+            fclose(file);
+            exit(EXIT_FAILURE);
+        }
+
+        // Read layer dimensions
+        if (fscanf(file, "%d %d", &layer->input_size, &layer->output_size) != 2) {
+            perror("Failed to read layer dimensions");
+            fclose(file);
+            exit(EXIT_FAILURE);
+        }
+
+        // Allocate and read biases
+        layer->biases = malloc(sizeof(float) * layer->output_size);
+        if (!layer->biases) {
+            perror("Failed to allocate memory for biases");
+            fclose(file);
+            exit(EXIT_FAILURE);
+        }
+        for (int j = 0; j < layer->output_size; j++) {
+            if (fscanf(file, "%f", &layer->biases[j]) != 1) {
+                perror("Failed to read biases");
+                fclose(file);
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        // Allocate and read weights
+        layer->weights = malloc(sizeof(float) * layer->input_size * layer->output_size);
+        if (!layer->weights) {
+            perror("Failed to allocate memory for weights");
+            fclose(file);
+            exit(EXIT_FAILURE);
+        }
+        for (int j = 0; j < layer->input_size; j++) {
+            for (int k = 0; k < layer->output_size; k++) {
+                if (fscanf(file, "%f", &layer->weights[j * layer->output_size + k]) != 1) {
+                    perror("Failed to read weights");
+                    fclose(file);
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+    }
+
+    fclose(file);
+    printf("Training loaded successfully from %s\n", filename);
+}
+
+
+// Save training
+
+void save_train(Network *network, char *filename) {
+    FILE *file = fopen(filename, "w");
+    if (!file) {
+        perror("Failed to open file for saving");
+        exit(EXIT_FAILURE);
+    }
+
+    // Write general information about the network
+    fprintf(file, "%d %d\n", network->nb_hidden_layers, network->total_layers);
+
+    // Save each layer's information (input_size, output_size, weights, biases)
+    for (int i = 0; i < network->total_layers; i++) {
+        Layer *layer = network->layers[i];
+
+        // First line: layer info (input_size, output_size)
+        fprintf(file, "%d %d\n", layer->input_size, layer->output_size);
+
+        // Second line: biases
+        for (int j = 0; j < layer->output_size; j++) {
+            fprintf(file, "%f ", layer->biases[j]);
+        }
+        fprintf(file, "\n");
+
+        // Third line: weights
+        for (int j = 0; j < layer->input_size; j++) {
+            for (int k = 0; k < layer->output_size; k++) {
+                fprintf(file, "%f ", layer->weights[j * layer->output_size + k]);
+            }
+        }
+        fprintf(file, "\n");
+    }
+
+    fclose(file);
+    printf("Training saved to %s\n", filename);
+}
+
+// bool check if a file has saves training structure
+bool is_saved(char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        return false;
+    }
+
+    // check if the file is empty
+    fseek(file, 0, SEEK_END);
+    if (ftell(file) == 0) {
+        fclose(file);
+        return false;
+    }
+
+    fclose(file);
+    return true;
+}
+
+// training function
+void training(Network *network, float learning_rate, int epochs, float ***output_values, char * save_file_name) {
     // Initialize output values for each layer
     initialize_output_layer_values(network, output_values);
 
@@ -387,7 +530,14 @@ void training(Network *network, float learning_rate, int epochs, float ***output
         // Perform backward pass
         backward_pass(network, *output_values, leaky_relu_coefficient, learning_rate, (float)label);
     }
+
+    // save the training 
+    
+    save_train(network,save_file_name); 
+    printf("The train has been saved into %s \n",save_file_name); 
 }
+
+
 
 
 // FREE FUNCTIONS 
@@ -395,35 +545,60 @@ void training(Network *network, float learning_rate, int epochs, float ***output
 // Free a single layer
 void free_layer(Layer *layer) {
     if (layer) {
-        free(layer->weights);
-        free(layer->biases);
-        free(layer); 
+        if (layer->weights) {
+            free(layer->weights);
+            layer->weights = NULL;
+        }
+        if (layer->biases) {
+            free(layer->biases);
+            layer->biases = NULL;
+        }
+        free(layer);
+        layer = NULL;
     }
 }
 
 // Free all layers in a network
 void free_layers(Layer **layers, int total_layers) {
-    for (int i = 0; i < total_layers; i++) {
-        free_layer(layers[i]); 
+    if (layers) {
+        for (int i = 0; i < total_layers; i++) {
+            if (layers[i]) {
+                free_layer(layers[i]);
+                layers[i] = NULL;
+            }
+        }
+        free(layers);
+        layers = NULL;
     }
-    free(layers); 
 }
 
 // Free a network
 void free_network(Network *network) {
-    free_layers(network->layers, network->total_layers);
-    if (network->hidden_layers) {
-        free(network->hidden_layers);
+    if (network) {
+        if (network->layers) {
+            free_layers(network->layers, network->total_layers);
+            network->layers = NULL;
+        }
+        if (network->hidden_layers) {
+            free(network->hidden_layers);
+            network->hidden_layers = NULL;
+        }
+        free(network);
+        network = NULL;
     }
-    free(network); 
 }
+
 // Free output layer values
 void free_output_layer_values(Network *network, float **output_values) {
     if (output_values) {
         for (int i = 0; i < network->total_layers; i++) {
-            free(output_values[i]);
+            if (output_values[i]) {
+                free(output_values[i]);
+                output_values[i] = NULL;
+            }
         }
         free(output_values);
+        output_values = NULL;
     }
 }
 
@@ -432,6 +607,16 @@ void free_output_layer_values(Network *network, float **output_values) {
 int main(int argc, char **argv) {
     srand(time(NULL));
 
+    // Allocate ( and initialize) network
+    Network *network = malloc(sizeof(Network)); 
+    // define the save file 
+    char * fileName = "save.txt"; 
+
+    if (is_saved(fileName)) {
+
+        load_train(network,fileName); 
+
+    } else {
     // Allocate and initialize layers
     Layer **layers = malloc(sizeof(Layer *) * 4);
     layers[0] = malloc(sizeof(Layer));
@@ -445,9 +630,10 @@ int main(int argc, char **argv) {
     initialize_layer(layers[2], 4, 2); // Hidden layer 2: 4 inputs, 2 outputs
     initialize_layer(layers[3], 2, 4); // Output layer: 2 inputs, 4 outputs
 
-    // Allocate and initialize network
-    Network *network = malloc(sizeof(Network));
     initialize_network(network, layers, 4, 0, 3);
+    }
+
+
 
     // Display neural network initialized
     printf("Network has %d total layers and %d hidden layers\n", network->total_layers, network->nb_hidden_layers);
@@ -456,7 +642,7 @@ int main(int argc, char **argv) {
     float **output_values = NULL;
 
     // Training the network
-    training(network, 0.05, 1000000, &output_values);
+    training(network, 0.05, 1000000, &output_values, fileName); 
 
     // Testing the network
     float test_inputs[4][4] = {
@@ -483,7 +669,7 @@ int main(int argc, char **argv) {
         }
         printf("\n");
     }
- 
+    printf("1");
 
     // Free all resources
     free_output_layer_values(network, output_values);

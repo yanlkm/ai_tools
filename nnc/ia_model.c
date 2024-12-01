@@ -202,13 +202,6 @@ void forward_pass(Network *network, float *input_values, float **output_values, 
 
     float *current_input = input_values; // Start with the input layer
 
-    // Print initial input values
-    printf("Input values:\n");
-    for (int i = 0; i < network->layers[0]->input_size; i++) {
-        printf("%f ", input_values[i]);
-    }
-    printf("\n");
-
     for (int i = 0; i < network->total_layers; i++) {
         // Perform forward propagation
         forward_propagation(network->layers[i], current_input, output_values[i]);
@@ -224,13 +217,6 @@ void forward_pass(Network *network, float *input_values, float **output_values, 
 
     // Apply softmax to the output layer (last layer's output)
     softmax(output_values[network->total_layers - 1], network->layers[network->total_layers - 1]->output_size);
-
-    // Debug: Print final output values after softmax
-    printf("Final output values (after softmax):\n");
-    for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
-        printf("%f ", output_values[network->total_layers - 1][i]);
-    }
-    printf("\n");
 }
 
 
@@ -244,17 +230,6 @@ void output_gradient(float *output_values, float *output_gradient, float label, 
     for (int i = 0; i < output_size; i++) {
         output_gradient[i] = output_values[i] - (i == (int)label ? 1.0f : 0.0f);
     }
-    printf("Output gradient:\n");
-    for (int i = 0; i < output_size; i++) {
-        printf("%f ", output_gradient[i]);
-    }
-    printf("\n");
-
-    printf("Output values:\n");
-    for (int i = 0; i < output_size; i++) {
-        printf("%f ", output_values[i]);
-    }
-    printf("\n");
 }
 
 // Leaky ReLU derivative
@@ -296,34 +271,6 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
         exit(EXIT_FAILURE);
     }
 
-    // STEP 0 DEBUG : Printf all the parameters
-    printf("Previous output nodes: %d\n", previous_output_nodes);
-    printf("Current output nodes: %d\n", current_output_nodes);
-    printf("Derivative Leaky ReLU coefficient: %f\n", derivative_lrelu_coefficient);
-    printf("Learning rate: %f\n", learning_rate);
-    printf("Layer weights:\n");
-    for (int i = 0; i < previous_output_nodes; i++) {
-        for (int j = 0; j < current_output_nodes; j++) {
-            printf("%f ", layer->weights[i * current_output_nodes + j]);
-        }
-        printf("\n");
-    }
-    printf("Layer biases:\n");
-    for (int i = 0; i < current_output_nodes; i++) {
-        printf("%f ", layer->biases[i]);
-    }
-    printf("\n");
-    printf("Next layer activated gradients:\n");
-    for (int i = 0; i < current_output_nodes; i++) {
-        printf("%f ", next_layer_activated_gradients[i]);
-    }
-    printf("\n");
-    printf("Input values:\n");
-    for (int i = 0; i < previous_output_nodes; i++) {
-        printf("%f ", input_values[i]);
-    }
-    printf("\n");
-
 
     // Step 1: Compute gradients of activated values
     for (int i = 0; i < current_output_nodes; i++) {
@@ -351,7 +298,6 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
 
     // Update biases
     for (int i = 0; i < current_output_nodes; i++) {
-        printf("current_layer_activated_gradients[%d] = %f\n", i, current_layer_activated_gradients[i]);
         layer->biases[i] -= learning_rate * current_layer_activated_gradients[i];
     }
 
@@ -390,13 +336,6 @@ void backward_pass(Network *network, float **output_values, float leaky_relu_coe
         network->layers[network->total_layers - 1]->output_size
     );
 
-    // printf the result of the output gradient
-    printf("Output gradient:\n");
-    for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
-        printf("%f ", gradients[network->total_layers - 1][i]);
-    }
-        printf("\n");
-
     // Propagate gradients backwards through all layers
     for (int layer_idx = network->total_layers - 1; layer_idx > 0; layer_idx--) {
         bool isLastLayer = layer_idx == network->total_layers - 1;
@@ -410,34 +349,6 @@ void backward_pass(Network *network, float **output_values, float leaky_relu_coe
             isLastLayer                       // Is this the last layer?
         );
 
-        // print the gradients for the current layer computed
-        printf("\nGradients for layer %d:\n", layer_idx);
-        for (int i = 0; i < network->layers[layer_idx]->output_size; i++) {
-            printf("%f ", gradients[layer_idx][i]);
-        }
-        printf("\n");
-        // print the previous layer gradients
-        printf("Gradients for layer %d:\n", layer_idx - 1);
-        for (int i = 0; i < network->layers[layer_idx - 1]->output_size; i++) {
-            printf("%f ", gradients[layer_idx - 1][i]);
-        }
-    }
-
-    //  Display updated weights and biases for debugging
-    for (int layer_idx = 0; layer_idx < network->total_layers; layer_idx++) {
-        Layer *layer = network->layers[layer_idx];
-        printf("\nUpdated weights of layer %d:\n", layer_idx);
-        for (int i = 0; i < layer->input_size; i++) {
-            for (int j = 0; j < layer->output_size; j++) {
-                printf("%f ", layer->weights[i * layer->output_size + j]);
-            }
-            printf("\n");
-        }
-        printf("Updated biases of layer %d:\n", layer_idx);
-        for (int i = 0; i < layer->output_size; i++) {
-            printf("%f ", layer->biases[i]);
-        }
-        printf("\n");
     }
 
     // Free allocated gradients
@@ -449,8 +360,34 @@ void backward_pass(Network *network, float **output_values, float leaky_relu_coe
     printf("\nBackward Propagation Completed.\n");
 }
 
-// TRAINING : construct the input values and the label values (0,1,2,3) for the training, and perform the forward pass and backward pass
+void training(Network *network, float learning_rate, int epochs, float ***output_values) {
+    // Initialize output values for each layer
+    initialize_output_layer_values(network, output_values);
 
+    // Training loop
+    for (int epoch = 0; epoch < epochs; epoch++) {
+        // Determine the label in a round-robin fashion (seen on google search ahah)
+        int label = epoch % 4;
+
+        // Construct the input values for the training
+        float input_values[4] = {0.0};
+        input_values[label] = 1.0;
+
+        // Perform forward pass
+        float leaky_relu_coefficient = 0.01;
+        forward_pass(network, input_values, *output_values, leaky_relu_coefficient);
+
+        // Display final output
+        printf("Epoch %d - Final output values after softmax for label %d:\n", epoch+1, label);
+        for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
+            printf("%f ", (*output_values)[network->total_layers - 1][i]);
+        }
+        printf("\n");
+
+        // Perform backward pass
+        backward_pass(network, *output_values, leaky_relu_coefficient, learning_rate, (float)label);
+    }
+}
 
 
 // FREE FUNCTIONS 
@@ -515,50 +452,38 @@ int main(int argc, char **argv) {
     // Display neural network initialized
     printf("Network has %d total layers and %d hidden layers\n", network->total_layers, network->nb_hidden_layers);
 
-    // Initialize output values for each layer
+    // Allocate memory for output values
     float **output_values = NULL;
-    initialize_output_layer_values(network, &output_values);
 
-    // Input values to the network (4 values for the input layer) correspondint to label 2 : 0 0 1 0, if 1 : 0 1 0 0, if 0 : 1 0 0 0, if 3 : 0 0 0 1
-    float input_values[] = {0.0, 0.0, 0.0, 1.0};
+    // Training the network
+    training(network, 0.05, 1000000, &output_values);
 
-    // Perform forward pass
-    float leaky_relu_coefficient = 0.01;
-    forward_pass(network, input_values, output_values, leaky_relu_coefficient);
+    // Testing the network
+    float test_inputs[4][4] = {
+        {1.0, 0.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0, 0.0},
+        {0.0, 0.0, 1.0, 0.0},
+        {0.0, 0.0, 0.0, 1.0},
+    };
 
-    // Display final output
-    printf("Final output values after softmax:\n");
-    for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
-        printf("%f ", output_values[network->total_layers - 1][i]);
-    }
-    printf("\n");
+    // Intialize output values for testing
+    float **output_values_test = NULL;
+    initialize_output_layer_values(network, &output_values_test);
 
-    // Display the whole output values
-    for (int i = 0; i < network->total_layers; i++) {
-        printf("Output values for layer %d:\n", i);
-        for (int j = 0; j < network->layers[i]->output_size; j++) {
-            printf("%f ", output_values[i][j]);
+    // test the network 10 times
+       printf("\n\nTesting the network...\n");
+       printf("====================================\n");
+
+ 
+           for (int test = 0; test < 4; test++) {
+        forward_pass(network, test_inputs[test], output_values_test, 0.01);
+        printf("Test %d - Final output values:\n", test);
+        for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
+            printf("%f ", output_values_test[network->total_layers - 1][i]);
         }
         printf("\n");
     }
-
-    // Perform backward pass
-    float learning_rate = 0.1;
-    float label = 3.0;
-    // training : backpropagation 9000 times
-    for (int i = 0; i < 9000; i++) {
-        backward_pass(network, output_values, leaky_relu_coefficient, learning_rate, label);
-        forward_pass(network, input_values, output_values, leaky_relu_coefficient);
-
-    }
-
-
-    // display final output after training
-    printf("Final output values after softmax (after training):\n");
-    for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
-        printf("%f ", output_values[network->total_layers - 1][i]);
-    }
-    printf("\n");
+ 
 
     // Free all resources
     free_output_layer_values(network, output_values);

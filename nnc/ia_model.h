@@ -60,3 +60,10 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
 void backward_pass(Network * network, float ** output_values, float leaky_relu_coefficient, float learning_rate, float label);
 // train and save training
 void training(Network *network, float learning_rate, int epochs, float ***output_values, char * save_file_name);
+// saves
+// load network already trained
+void load_train(Network *network, char *filename); 
+// save a network trained
+void save_train(Network *network, char *filename); 
+// check if saving file has saves or not
+void is_saved(char *filename);

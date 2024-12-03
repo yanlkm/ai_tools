@@ -78,3 +78,5 @@ void massive_test(Network *network, float **output_values, float **input_values,
 // neural network application : read mnist data and train the network
 // read mnist images
 float **read_mnist_images(const char *filename, int *num_images, int *image_size); 
+// read mnist labels
+float *read_mnist_labels(const char *filename, int *num_labels);

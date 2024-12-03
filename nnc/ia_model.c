@@ -327,8 +327,14 @@ void backward_pass(Network *network, float **output_values, float leaky_relu_coe
     // Check network validity
     printf("Network has %d layers.\n", network->total_layers);
 
-    // Allocate gradients for each layer without using malloc or calloc to avoid memory leaks
-    float gradients[network->total_layers][network->layers[network->total_layers - 1]->output_size];
+    // Allocate gradients for each layer without using malloc or calloc to avoid memory leaks 
+    // get the maximum size of the output layer
+    int max = 0;
+    for (int i = 0; i < network->total_layers; i++) {
+        max = network->layers[i]->output_size > max ? network->layers[i]->output_size : max;
+    }
+
+    float gradients[network->total_layers][max];
     
     for (int i = 0; i < network->total_layers; i++) {
         for (int j = 0; j < network->layers[i]->output_size; j++) {
@@ -502,41 +508,189 @@ bool is_saved(char *filename) {
     return true;
 }
 
+// Application : read mnist data
+float **read_mnist_images(const char *filename, int *num_images, int *image_size) {
+    // Open the file
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
+    }
+
+    // read the magic number, number of images, number of rows, and number of columns (source of code : https://stackoverflow.com/questions/8286668/how-to-read-mnist-data-in-c)
+    int magic_number = 0, num_rows = 0, num_cols = 0;
+    fread(&magic_number, sizeof(int), 1, file);
+    magic_number = __builtin_bswap32(magic_number);
+
+    fread(num_images, sizeof(int), 1, file);
+    *num_images = __builtin_bswap32(*num_images);
+
+    fread(&num_rows, sizeof(int), 1, file);
+    num_rows = __builtin_bswap32(num_rows);
+
+    fread(&num_cols, sizeof(int), 1, file);
+    num_cols = __builtin_bswap32(num_cols);
+
+    *image_size = num_rows * num_cols;
+
+    //Allocate memory for images
+    float **images = malloc(*num_images * sizeof(float *));
+    for (int i = 0; i < *num_images; i++) {
+        images[i] = malloc(*image_size * sizeof(float));
+    }
+
+    // Read images : convert pixel values to float
+    unsigned char *buffer = malloc(*image_size);
+    for (int i = 0; i < *num_images; i++) {
+        fread(buffer, sizeof(unsigned char), *image_size, file);
+        for (int j = 0; j < *image_size; j++) {
+            images[i][j] = buffer[j] > 127 ? 1.0f : 0.0f;
+        }
+    }
+
+    free(buffer);
+    fclose(file);
+
+    return images;
+}
+
+// Read MNIST labels
+float *read_mnist_labels(const char *filename, int *num_labels) {
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        perror("Failed to open file");
+        exit(EXIT_FAILURE);
+    }
+
+    // Read headers
+    int magic_number = 0;
+    fread(&magic_number, sizeof(int), 1, file);
+    magic_number = __builtin_bswap32(magic_number); // Convert to big-endian 
+
+    if (magic_number != 2049) {
+        fprintf(stderr, "Invalid magic number: %d\n", magic_number);
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
+
+    fread(num_labels, sizeof(int), 1, file);
+    *num_labels = __builtin_bswap32(*num_labels);
+
+    if (*num_labels <= 0) {
+        fprintf(stderr, "Invalid number of labels: %d\n", *num_labels);
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Magic number: %d\n", magic_number);
+    printf("Number of labels: %d\n", *num_labels);
+
+    // Read labels
+    unsigned char *temp_labels = malloc(*num_labels * sizeof(unsigned char));
+    if (fread(temp_labels, sizeof(unsigned char), *num_labels, file) != *num_labels) {
+        fprintf(stderr, "Failed to read all labels\n");
+        free(temp_labels);
+        fclose(file);
+        exit(EXIT_FAILURE);
+    }
+
+    // Convert to float array
+    float *labels = malloc(*num_labels * sizeof(float));
+    for (int i = 0; i < *num_labels; i++) {
+        labels[i] = (float)temp_labels[i];
+    }
+
+    free(temp_labels);
+    fclose(file);
+
+    return labels;
+}
+
 // training function
-void training(Network *network, float learning_rate, int epochs, float ***output_values, char * save_file_name) {
+void training(Network *network, float learning_rate, int epochs, float ***output_values, char *save_file_name, const char *images_file, const char *labels_file) {
     // Initialize output values for each layer
     initialize_output_layer_values(network, output_values);
 
+    // Read MNIST images and labels
+    int num_images, image_size, num_labels;
+    float **images = read_mnist_images(images_file, &num_images, &image_size);
+    float *labels = read_mnist_labels(labels_file, &num_labels);
+
+    if (num_images != num_labels) {
+        printf("Number of images: %d\n", num_images);
+        printf("Number of labels: %d\n", num_labels);
+        perror("Number of images and labels don't match");
+        exit(EXIT_FAILURE);
+    }
+
     // Training loop
     for (int epoch = 0; epoch < epochs; epoch++) {
-        // Determine the label in a round-robin fashion (seen on google search ahah)
-        int label = epoch % 19;
-
-        // Construct the input values for the training
-        float input_values[19] = {0.0};
-        input_values[label] = 1.0;
+        // Determine the current image and label
+        int idx = epoch % num_images;
+        float *input_values = images[idx];
+        float label = labels[idx];
 
         // Perform forward pass
         float leaky_relu_coefficient = 0.01;
         forward_pass(network, input_values, *output_values, leaky_relu_coefficient);
 
         // Display final output
-        printf("Epoch %d - Final output values after softmax for label %d:\n", epoch+1, label);
+        printf("Epoch %d - Final output values after softmax for label %d:\n", epoch + 1, (int)label);
         for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
-            printf("%f ", (*output_values)[network->total_layers - 1][i]);
+            printf("index : %d - value : %f\n", i, (*output_values)[network->total_layers - 1][i]);
         }
         printf("\n");
 
         // Perform backward pass
-       backward_pass(network, *output_values, leaky_relu_coefficient, learning_rate, (float)label);
+        backward_pass(network, *output_values, leaky_relu_coefficient, learning_rate, label);
     }
 
-    // save the training 
-    
-    save_train(network,save_file_name); 
-    printf("The train has been saved into %s \n",save_file_name); 
+    // Save the training
+    save_train(network, save_file_name);
+    printf("The train has been saved into %s\n", save_file_name);
+
+    // Free MNIST images and labels
+    for (int i = 0; i < num_images; i++) {
+        free(images[i]);
+    }
+    free(images);
+    free(labels);
 }
 
+
+// TESTING AND ACCURACY (Test does not update weights and biases - its not a training function)
+void test(Network *network, float **output_values, float *input_values, float *label_values, float * score) {
+    // Perform forward pass
+    float leaky_relu_coefficient = 0.01;
+    forward_pass(network, input_values, output_values, leaky_relu_coefficient);
+
+    // Determine the predicted label
+    float max_value = -1.0f;
+    int max_index = -1;
+    for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
+        if (output_values[network->total_layers - 1][i] > max_value) {
+            max_value = output_values[network->total_layers - 1][i];
+            max_index = i;
+        }
+    }
+    // Determine the score
+    *score = (max_index == (int)*label_values) ? 1.0f : 0.0f;
+}
+
+
+// Massive test
+void massive_test(Network *network, float **output_values, float **input_values, float *label_values, int total_tests, float *score) {
+    // Initialize the score
+    *score = 0.0f;
+
+    // Perform tests
+    for (int i = 0; i < total_tests; i++) {
+        test(network, output_values, input_values[i], label_values + i, score);
+    }
+
+    // Compute the accuracy
+    *score /= total_tests;
+}
 
 
 
@@ -606,11 +760,14 @@ void free_output_layer_values(Network *network, float **output_values) {
 // Main function for testing
 int main(int argc, char **argv) {
     srand(time(NULL));
+    // Files definition : save, images and labels
+    char * fileName = "save.bin";
+    char * images_file = "data/train-images-idx3-ubyte/train-images-idx3-ubyte"; 
+    char * labels_file = "data/train-labels-idx1-ubyte/train-labels-idx1-ubyte";
 
     // Allocate ( and initialize) network
     Network *network = malloc(sizeof(Network)); 
-    // define the save file 
-    char * fileName = "save.txt"; 
+ 
 
     if (is_saved(fileName)) {
 
@@ -624,68 +781,27 @@ int main(int argc, char **argv) {
     layers[2] = malloc(sizeof(Layer));
     layers[3] = malloc(sizeof(Layer));
 
-    // Initialize layers with input and output sizes
-    initialize_layer(layers[0], 0, 19); // Input layer: 4 outputs
-    initialize_layer(layers[1], 19, 8); // Hidden layer 1: 5 inputs, 4 outputs
-    initialize_layer(layers[2], 8, 4); // Hidden layer 2: 4 inputs, 2 outputs
-    initialize_layer(layers[3], 4, 7); // Output layer: 2 inputs, 4 outputs
+    // Initialize layers with 784 input nodes, 128 hidden nodes, 64 hidden nodes, and 10 output nodes
+    initialize_layer(layers[0], 0, 784);
+    initialize_layer(layers[1], 784, 128);
+    initialize_layer(layers[2], 128, 64);
+    initialize_layer(layers[3], 64, 10);
 
     initialize_network(network, layers, 4, 0, 3);
     }
-
-
-
     // Display neural network initialized
     printf("Network has %d total layers and %d hidden layers\n", network->total_layers, network->nb_hidden_layers);
 
+    // define the learning rate
+    float learning_rate = 0.05;
+    // define the number of epochs
+    int epochs = 1;
+
     // Allocate memory for output values
     float **output_values = NULL;
-
-    // Training the network
-    training(network, 0.05, 100000, &output_values, fileName);
-   
-    // Testing the network for 19 input values
-float test_inputs[10][19] = {
-    {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9},
-    {1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1},
-    {2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8},
-    {0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9},
-    {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9},
-    {0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
-    {3.0, 2.9, 2.8, 2.7, 2.6, 2.5, 2.4, 2.3, 2.2, 2.1, 2.0, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2},
-    {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3},
-    {2.3, 2.2, 2.1, 2.0, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5},
-    {1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3}
-};
-
-    // Intialize output values for testing
-    float **output_values_test = NULL;
-    initialize_output_layer_values(network, &output_values_test);
-
-    // test the network 10 times
-       printf("\n\nTesting the network...\n");
-       printf("====================================\n");
-
- 
-for (int test = 0; test < 10; test++) {
-    forward_pass(network, test_inputs[test], output_values_test, 0.01);
-    
-    printf("Test %d - Final output values:\n", test);
-    float max_value = -1.0f;
-    int max_index = -1;
-    for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
-        printf("%f ", output_values_test[network->total_layers - 1][i]);
-        
-        if (output_values_test[network->total_layers - 1][i] > max_value) {
-            max_value = output_values_test[network->total_layers - 1][i];
-            max_index = i;
-        }
-    }
-    
-    printf("\nHighest probability at index: %d (value: %f)\n", max_index, max_value);
-}
-
-    printf("1");
+    initialize_output_layer_values(network, &output_values);
+    // Training
+    training(network, learning_rate, epochs, &output_values, fileName, images_file, labels_file);
 
     // Free all resources
     free_output_layer_values(network, output_values);

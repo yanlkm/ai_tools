@@ -59,7 +59,7 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
 // backward pass : includes output_values, leaky_relu_coefficient, learning_rate and label
 void backward_pass(Network * network, float ** output_values, float leaky_relu_coefficient, float learning_rate, float label);
 // train and save training
-void training(Network *network, float learning_rate, int epochs, float ***output_values, char * save_file_name);
+void training(Network *network, float learning_rate, int epochs, float ***output_values, char *save_file_name, const char *images_file, const char *labels_file) ;
 // saves
 // load network already trained
 void load_train(Network *network, char *filename); 
@@ -67,3 +67,14 @@ void load_train(Network *network, char *filename);
 void save_train(Network *network, char *filename); 
 // check if saving file has saves or not
 bool is_saved(char *filename);
+
+// test function to determine accuracy after training
+
+// save the score on one test
+void test(Network *network, float **output_values, float *input_values, float *label_values, float * score);
+// perform massive test on the network
+void massive_test(Network *network, float **output_values, float **input_values, float *label_values, int total_tests, float *score);
+
+// neural network application : read mnist data and train the network
+// read mnist images
+float **read_mnist_images(const char *filename, int *num_images, int *image_size); 

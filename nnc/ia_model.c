@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 #include "ia_model.h"
 #include <stdbool.h>
 
@@ -36,6 +37,7 @@ void initialize_layer(Layer *layer, int input_size, int output_size) {
         exit(EXIT_FAILURE);
     }
 
+    // Allocate memory for biases
     layer->biases = malloc(sizeof(float) * output_size);
     if (!layer->biases) {
         perror("Failed to allocate memory for biases");
@@ -47,7 +49,6 @@ void initialize_layer(Layer *layer, int input_size, int output_size) {
     for (int i = 0; i < connections; i++) {
         layer->weights[i] = glorot_uniform(input_size, output_size);
     }
-
     for (int j = 0; j < output_size; j++) {
         layer->biases[j] = 0.0f;
     }
@@ -227,10 +228,12 @@ void output_gradient(float *output_values, float *output_gradient, float label, 
         perror("Incorrect output values, size or gradient");
         exit(EXIT_FAILURE);
     }
+
     // compute outgradient
     for (int i = 0; i < output_size; i++) {
         output_gradient[i] = output_values[i] - (i == (int)label ? 1.0f : 0.0f);
     }
+
 }
 
 // Leaky ReLU derivative
@@ -261,6 +264,11 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
         perror("Invalid arguments for backward_propagation");
         exit(EXIT_FAILURE);
     }
+
+    // check if is the input layer
+    if (layer->input_size == 0) {
+        printf("The input layer has no weights or biases to update.\n");
+    } else {
 
     int previous_output_nodes = layer->input_size;
     int current_output_nodes = layer->output_size;
@@ -304,6 +312,8 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
 
     // Free temporary gradients
     free(temp_gradients);
+
+    }
 }
 
 void backward_pass(Network *network, float **output_values, float leaky_relu_coefficient, float learning_rate, float label) {
@@ -314,22 +324,18 @@ void backward_pass(Network *network, float **output_values, float leaky_relu_coe
 
     printf("\nStarting Backward Propagation...\n");
 
-    // Allocate gradients for each layer
-    float **gradients = malloc(network->total_layers * sizeof(float *));
-    if (!gradients) {
-        perror("Memory allocation failed for gradients");
-        exit(EXIT_FAILURE);
-    }
+    // Check network validity
+    printf("Network has %d layers.\n", network->total_layers);
 
+    // Allocate gradients for each layer without using malloc or calloc to avoid memory leaks
+    float gradients[network->total_layers][network->layers[network->total_layers - 1]->output_size];
+    
     for (int i = 0; i < network->total_layers; i++) {
-        gradients[i] = calloc(network->layers[i]->output_size, sizeof(float));
-        if (!gradients[i]) {
-            perror("Memory allocation failed for gradients per layer");
-            exit(EXIT_FAILURE);
+        for (int j = 0; j < network->layers[i]->output_size; j++) {
+            gradients[i][j] = 0.0f;
         }
     }
-
-    // Compute the output gradient (last layer)
+    
     output_gradient(
         output_values[network->total_layers - 1],       // Output values of the last layer
         gradients[network->total_layers - 1],          // Gradient storage for the last layer
@@ -342,24 +348,18 @@ void backward_pass(Network *network, float **output_values, float leaky_relu_coe
         bool isLastLayer = layer_idx == network->total_layers - 1;
         backward_propagation(
             network->layers[layer_idx],                 // Current layer
-            output_values[layer_idx - 1],              // Inputs to the current layer
-            gradients[layer_idx],                      // Gradients from the next layer
-            gradients[layer_idx - 1],                  // Gradients for the current layer
-            leaky_relu_coefficient,                    // Leaky ReLU coefficient
-            learning_rate,               // Learning rate
-            isLastLayer                       // Is this the last layer?
+            output_values[layer_idx - 1],               // Inputs to the current layer
+            gradients[layer_idx],                       // Gradients from the next layer
+            gradients[layer_idx - 1],                   // Gradients for the current layer
+            leaky_relu_coefficient,                     // Leaky ReLU coefficient
+            learning_rate,                              // Learning rate
+            isLastLayer                                 // Is this the last layer?
         );
-
     }
-
-    // Free allocated gradients
-    for (int i = 0; i < network->total_layers; i++) {
-        free(gradients[i]);
-    }
-    free(gradients);
 
     printf("\nBackward Propagation Completed.\n");
 }
+
 
 
 // TRAINING
@@ -510,10 +510,10 @@ void training(Network *network, float learning_rate, int epochs, float ***output
     // Training loop
     for (int epoch = 0; epoch < epochs; epoch++) {
         // Determine the label in a round-robin fashion (seen on google search ahah)
-        int label = epoch % 4;
+        int label = epoch % 19;
 
         // Construct the input values for the training
-        float input_values[4] = {0.0};
+        float input_values[19] = {0.0};
         input_values[label] = 1.0;
 
         // Perform forward pass
@@ -528,7 +528,7 @@ void training(Network *network, float learning_rate, int epochs, float ***output
         printf("\n");
 
         // Perform backward pass
-        backward_pass(network, *output_values, leaky_relu_coefficient, learning_rate, (float)label);
+       backward_pass(network, *output_values, leaky_relu_coefficient, learning_rate, (float)label);
     }
 
     // save the training 
@@ -625,10 +625,10 @@ int main(int argc, char **argv) {
     layers[3] = malloc(sizeof(Layer));
 
     // Initialize layers with input and output sizes
-    initialize_layer(layers[0], 0, 4); // Input layer: 4 outputs
-    initialize_layer(layers[1], 4, 4); // Hidden layer 1: 5 inputs, 4 outputs
-    initialize_layer(layers[2], 4, 2); // Hidden layer 2: 4 inputs, 2 outputs
-    initialize_layer(layers[3], 2, 4); // Output layer: 2 inputs, 4 outputs
+    initialize_layer(layers[0], 0, 19); // Input layer: 4 outputs
+    initialize_layer(layers[1], 19, 8); // Hidden layer 1: 5 inputs, 4 outputs
+    initialize_layer(layers[2], 8, 4); // Hidden layer 2: 4 inputs, 2 outputs
+    initialize_layer(layers[3], 4, 7); // Output layer: 2 inputs, 4 outputs
 
     initialize_network(network, layers, 4, 0, 3);
     }
@@ -642,15 +642,21 @@ int main(int argc, char **argv) {
     float **output_values = NULL;
 
     // Training the network
-    training(network, 0.05, 1000000, &output_values, fileName); 
-
-    // Testing the network
-    float test_inputs[4][4] = {
-        {1.0, 0.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0, 0.0},
-        {0.0, 0.0, 1.0, 0.0},
-        {0.0, 0.0, 0.0, 1.0},
-    };
+    training(network, 0.05, 100000, &output_values, fileName);
+   
+    // Testing the network for 19 input values
+float test_inputs[10][19] = {
+    {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9},
+    {1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1},
+    {2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8},
+    {0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9},
+    {1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9},
+    {0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0},
+    {3.0, 2.9, 2.8, 2.7, 2.6, 2.5, 2.4, 2.3, 2.2, 2.1, 2.0, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2},
+    {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3},
+    {2.3, 2.2, 2.1, 2.0, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5},
+    {1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3}
+};
 
     // Intialize output values for testing
     float **output_values_test = NULL;
@@ -661,14 +667,24 @@ int main(int argc, char **argv) {
        printf("====================================\n");
 
  
-           for (int test = 0; test < 4; test++) {
-        forward_pass(network, test_inputs[test], output_values_test, 0.01);
-        printf("Test %d - Final output values:\n", test);
-        for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
-            printf("%f ", output_values_test[network->total_layers - 1][i]);
+for (int test = 0; test < 10; test++) {
+    forward_pass(network, test_inputs[test], output_values_test, 0.01);
+    
+    printf("Test %d - Final output values:\n", test);
+    float max_value = -1.0f;
+    int max_index = -1;
+    for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
+        printf("%f ", output_values_test[network->total_layers - 1][i]);
+        
+        if (output_values_test[network->total_layers - 1][i] > max_value) {
+            max_value = output_values_test[network->total_layers - 1][i];
+            max_index = i;
         }
-        printf("\n");
     }
+    
+    printf("\nHighest probability at index: %d (value: %f)\n", max_index, max_value);
+}
+
     printf("1");
 
     // Free all resources

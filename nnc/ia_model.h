@@ -1,6 +1,3 @@
-#define HIDDEN_LAYERS 2
-#define INPUT_SIZE 784
-#define OUTPUT_SIZE 9
 #include <stdbool.h>
 
 typedef struct neural_layer {

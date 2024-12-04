@@ -125,10 +125,10 @@ This function performs forward propagation through the network, computing the ac
     z^{(l)} = W^{(l)} \cdot a^{(l-1)} + b^{(l)}
     $$
     where:
-    - $ z^{(l)} $ is the vector of logits for layer $ l $
-    - $ W^{(l)} $ is the weight matrix for layer $ l $
-    - $ a^{(l-1)} $ is the activation from the previous layer
-    - $ b^{(l)} $ is the bias vector for layer $ l $
+    - $z^{(l)}$ is the vector of logits for layer $l$
+    - $W^{(l)}$ is the weight matrix for layer $l$
+    - $a^{(l-1)}$ is the activation from the previous layer
+    - $b^{(l)}$ is the bias vector for layer $l$
 
     - Apply the LeakyReLU activation function to compute the activated value:
     $$
@@ -182,7 +182,7 @@ This function performs backward propagation, computing the error at each layer a
     $$
     \delta^{(L)} = \hat{y} - y
     $$
-    where $\hat{y}$ is the predicted output probability vector and $ y $ is the true label (one-hot encoded, e.g., [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]).
+    where $\hat{y}$ is the predicted output probability vector and $y$ is the true label (one-hot encoded, e.g., [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]).
 
 2. **Activation Value Gradient**: Compute the gradient of the activation values for the current layer:
     ```c
@@ -197,7 +197,7 @@ This function performs backward propagation, computing the error at each layer a
     $$
     \delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot f'(z^{(l)}) => \delta^{(l)} = \sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i \odot f'(z^{(l)})
     $$
-    where $\odot$ denotes element-wise multiplication and $ f'(z^{(l)}) $ is the derivative of the activation function. The sum $\sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i$ is computed for each neuron in the next layer, it means that we are computing the gradient of the activated values of the current layer using the gradients of the activated values of the next layer.
+    where $\odot$ denotes element-wise multiplication and $f'(z^{(l)})$ is the derivative of the activation function. The sum $\sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i$ is computed for each neuron in the next layer, it means that we are computing the gradient of the activated values of the current layer using the gradients of the activated values of the next layer.
 
 3. **Computed Value Gradient**: Compute the gradient of the computed values using the derivative of the LeakyReLU activation function:
     ```c

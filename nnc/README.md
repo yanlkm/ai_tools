@@ -91,7 +91,7 @@ $$
 W \sim \mathcal{U}\left(-\frac{\sqrt{6}}{\sqrt{n_{\text{in}} + n_{\text{out}}}}, \frac{\sqrt{6}}{\sqrt{n_{\text{in}} + n_{\text{out}}}}\right)
 $$
 
-where $n_{\text{in}}$ is the number of input units and $ n_{\text{out}} $ is the number of output units. This initialization helps in preventing the vanishing and exploding gradient problems, ensuring that the network trains efficiently.
+where $n_{\text{in}}$ is the number of input units and $n_{\text{out}}$ is the number of output units. This initialization helps in preventing the vanishing and exploding gradient problems, ensuring that the network trains efficiently.
 
 
 The biases are just initialized to zero 
@@ -141,7 +141,7 @@ This function performs forward propagation through the network, computing the ac
     \alpha x & \text{if } x \leq 0 
     \end{cases}
     $$
-    and $ \alpha $ is a small constant (``leaky_relu_coefficient``) (e.g., 0.00001).
+    and $\alpha$ is a small constant (``leaky_relu_coefficient``) (e.g., 0.00001).
 
 3. **Output Layer**: The final layer computes the logits and applies the softmax activation function to produce probabilities:
     $$
@@ -150,7 +150,7 @@ This function performs forward propagation through the network, computing the ac
     $$
     \hat{y} = \text{softmax}(z^{(L)}) = \frac{e^{z^{(L)}}}{\sum_{j} e^{z^{(L)}_j}}
     $$
-    where $ \hat{y} $ is the output probability vector.
+    where $\hat{y}$ is the output probability vector.
 
 
 ## Backward Propagation
@@ -182,7 +182,7 @@ This function performs backward propagation, computing the error at each layer a
     $$
     \delta^{(L)} = \hat{y} - y
     $$
-    where $ \hat{y} $ is the predicted output probability vector and $ y $ is the true label (one-hot encoded, e.g., [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]).
+    where $\hat{y}$ is the predicted output probability vector and $ y $ is the true label (one-hot encoded, e.g., [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]).
 
 2. **Activation Value Gradient**: Compute the gradient of the activation values for the current layer:
     ```c
@@ -197,7 +197,7 @@ This function performs backward propagation, computing the error at each layer a
     $$
     \delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot f'(z^{(l)}) => \delta^{(l)} = \sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i \odot f'(z^{(l)})
     $$
-    where $ \odot $ denotes element-wise multiplication and $ f'(z^{(l)}) $ is the derivative of the activation function. The sum $ \sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i $ is computed for each neuron in the next layer, it means that we are computing the gradient of the activated values of the current layer using the gradients of the activated values of the next layer.
+    where $\odot$ denotes element-wise multiplication and $ f'(z^{(l)}) $ is the derivative of the activation function. The sum $\sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i$ is computed for each neuron in the next layer, it means that we are computing the gradient of the activated values of the current layer using the gradients of the activated values of the next layer.
 
 3. **Computed Value Gradient**: Compute the gradient of the computed values using the derivative of the LeakyReLU activation function:
     ```c
@@ -209,7 +209,7 @@ This function performs backward propagation, computing the error at each layer a
     $$
     \frac{\partial L}{\partial z^{(l)}} = \delta^{(l)} \odot f'(z^{(l)})
     $$
-    where $ f'(z^{(l)}) $ is the derivative of the LeakyReLU activation function. This step computes the gradient of the computed values of the current layer using the gradient of the activated values of the current layer. The derivative of the LeakyReLU activation function is used to compute the gradient of the computed values.
+    where $f'(z^{(l)})$ is the derivative of the LeakyReLU activation function. This step computes the gradient of the computed values of the current layer using the gradient of the activated values of the current layer. The derivative of the LeakyReLU activation function is used to compute the gradient of the computed values.
 
 4. **Update Weights and Biases**: Update the weights and biases using the computed gradients and the learning rate:
     ```c
@@ -226,7 +226,7 @@ This function performs backward propagation, computing the error at each layer a
     $$
     b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
     $$
-    where $ \eta $ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate. Here we are using the gradient descent optimization algorithm to update the weights and biases.
+    where $\eta$ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate. Here we are using the gradient descent optimization algorithm to update the weights and biases.
 
 This process ensures that the network learns by minimizing the loss function through gradient descent.
 
@@ -292,7 +292,7 @@ This function trains the neural network using the MNIST dataset, adjusting the w
     $$
     L = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)
     $$
-    where $ y $ is the true label and $ \hat{y} $ is the predicted output probability vector.
+    where $y$ is the true label and $\hat{y}$ is the predicted output probability vector.
 
 5. **Backward Pass**: Adjust the weights and biases using gradient descen for each layer.
     ```c
@@ -304,7 +304,7 @@ This function trains the neural network using the MNIST dataset, adjusting the w
     $$
     b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
     $$
-    where $ \eta $ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate.
+    where $\eta$ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate.
 
 6. **Save Training**: Save the trained network parameters to a file.
     ```c

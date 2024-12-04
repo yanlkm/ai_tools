@@ -4,8 +4,8 @@ typedef struct neural_layer {
 
     float * weights ; 
     float * biases;
-    int input_size;// number of previous nodes/ouputs layer
-    int output_size;// current layer nodes/outputs 
+    int input_size;
+    int output_size;
 
 } Layer; 
 
@@ -29,7 +29,9 @@ void initialize_layer(Layer * layer, int input_size, int output_size);
 
 // Initialize output arrays for each layer according to layer-> output (nodes)
 void initialize_output_layer_values(Network *network, float ***output_values); 
+
 // forward propagation
+
 // hidden layer activation function : Leaky ReLU
 void leaky_relu(float * input_values, int hidden_layer_size, float coefficient); 
 // forward function
@@ -57,6 +59,7 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
 void backward_pass(Network * network, float ** output_values, float leaky_relu_coefficient, float learning_rate, float label);
 // train and save training
 void training(Network *network, float learning_rate, int epochs, float ***output_values, char *save_file_name, const char *images_file, const char *labels_file) ;
+
 // saves
 // load network already trained
 void load_train(Network *network, char *filename); 

@@ -91,7 +91,7 @@ $$
 W \sim \mathcal{U}\left(-\frac{\sqrt{6}}{\sqrt{n_{\text{in}} + n_{\text{out}}}}, \frac{\sqrt{6}}{\sqrt{n_{\text{in}} + n_{\text{out}}}}\right)
 $$
 
-where \(  n_{\text{in}} \) is the number of input units and $ n_{\text{out}} $ is the number of output units. This initialization helps in preventing the vanishing and exploding gradient problems, ensuring that the network trains efficiently.
+where $n_{\text{in}}$ is the number of input units and $ n_{\text{out}} $ is the number of output units. This initialization helps in preventing the vanishing and exploding gradient problems, ensuring that the network trains efficiently.
 
 
 The biases are just initialized to zero 

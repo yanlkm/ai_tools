@@ -606,7 +606,7 @@ float *read_mnist_labels(const char *filename, int *num_labels) {
     return labels;
 }
 
-// training function
+// Training function 
 void training(Network *network, float learning_rate, int epochs, float ***output_values, char *save_file_name, const char *images_file, const char *labels_file) {
     // Initialize output values for each layer
     initialize_output_layer_values(network, output_values);
@@ -617,37 +617,63 @@ void training(Network *network, float learning_rate, int epochs, float ***output
     float *labels = read_mnist_labels(labels_file, &num_labels);
 
     if (num_images != num_labels) {
-        printf("Number of images: %d\n", num_images);
-        printf("Number of labels: %d\n", num_labels);
         perror("Number of images and labels don't match");
         exit(EXIT_FAILURE);
     }
 
+    // Define batch size
+    int batch_size = 32; // Common convention for batch size
+    int num_batches = (num_images + batch_size - 1) / batch_size; // Round up
+
     // Training loop
     for (int epoch = 0; epoch < epochs; epoch++) {
-        // Determine the current image and label
-        int idx = epoch % num_images;
-        float *input_values = images[idx];
-        float label = labels[idx];
+        float epoch_loss = 0.0f;
 
-        // Perform forward pass
-        float leaky_relu_coefficient = 0.01;
-        forward_pass(network, input_values, *output_values, leaky_relu_coefficient);
+        printf("Epoch %d/%d\n", epoch + 1, epochs);
 
-        // Display final output
-        printf("Epoch %d - Final output values after softmax for label %d:\n", epoch + 1, (int)label);
-        for (int i = 0; i < network->layers[network->total_layers - 1]->output_size; i++) {
-            printf("index : %d - value : %f\n", i, (*output_values)[network->total_layers - 1][i]);
+        for (int batch = 0; batch < num_batches; batch++) {
+            int batch_start = batch * batch_size;
+            int current_batch_size = (batch_start + batch_size > num_images) ? (num_images - batch_start) : batch_size;
+
+            float batch_loss = 0.0f;
+
+            for (int i = 0; i < current_batch_size; i++) {
+                int idx = batch_start + i;
+                float *input_values = images[idx];
+                float label = labels[idx];
+
+                // Perform forward pass
+                float leaky_relu_coefficient = 0.01;
+                forward_pass(network, input_values, *output_values, leaky_relu_coefficient);
+
+                // Compute cross-entropy loss
+                float *output = (*output_values)[network->total_layers - 1];
+                float loss = -log(output[(int)label] + 1e-9); // Add small value to avoid log(0)
+                batch_loss += loss;
+
+                // Perform backward pass
+                backward_pass(network, *output_values, leaky_relu_coefficient, learning_rate, label);
+            }
+                // Save the training
+                save_train(network, save_file_name);
+                printf("The training has been saved into %s\n", save_file_name);
+
+            // Normalize batch loss
+            batch_loss /= current_batch_size;
+            epoch_loss += batch_loss;
+
+            // Display progress
+            printf("  Batch %d/%d - Loss: %f\n", batch + 1, num_batches, batch_loss);
         }
-        printf("\n");
 
-        // Perform backward pass
-        backward_pass(network, *output_values, leaky_relu_coefficient, learning_rate, label);
+        // Compute average loss for the epoch
+        epoch_loss /= num_batches;
+
+        // Display epoch loss
+        printf("Epoch %d - Average Loss: %f\n", epoch + 1, epoch_loss);
     }
 
-    // Save the training
-    save_train(network, save_file_name);
-    printf("The train has been saved into %s\n", save_file_name);
+
 
     // Free MNIST images and labels
     for (int i = 0; i < num_images; i++) {
@@ -656,6 +682,7 @@ void training(Network *network, float learning_rate, int epochs, float ***output
     free(images);
     free(labels);
 }
+
 
 
 // TESTING AND ACCURACY (Test does not update weights and biases - its not a training function)
@@ -792,8 +819,8 @@ int main(int argc, char **argv) {
     // Display neural network initialized
     printf("Network has %d total layers and %d hidden layers\n", network->total_layers, network->nb_hidden_layers);
 
-    // define the learning rate
-    float learning_rate = 0.05;
+    // define the learning rate for 60000 images
+    float learning_rate = 0.00001;
     // define the number of epochs
     int epochs = 1;
 

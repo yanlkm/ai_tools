@@ -299,12 +299,8 @@ $$
     ```c
     void backward_pass(Network *network, float **output_values, float leaky_relu_coefficient, float learning_rate, float label)
     ```
-$$
-W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}
-$$
-$$
-b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
-$$
+$W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}$
+$b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}$
     where $\eta$ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate.
 
 6. **Save Training**: Save the trained network parameters to a file.

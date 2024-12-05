@@ -24,6 +24,8 @@ void initialize_layer(Layer *layer, int input_size, int output_size) {
        exit(EXIT_FAILURE); 
     }
 
+
+    // Initialize the layer
     layer->input_size = input_size;
     layer->output_size = output_size;
 
@@ -62,6 +64,7 @@ void initialize_network(Network *network, Layer **layers, int total_layers, int 
         exit(EXIT_FAILURE);
     }
 
+    // Initialize the network
     network->layers = layers;
     network->total_layers = total_layers;
     network->input_layer = layers[input_layer_idx];
@@ -134,18 +137,18 @@ void leaky_relu(float * input_values, int hidden_layer_size, float coefficient) 
 void softmax(float * input_values, int output_layer_size) {
     // Define a sum
     float sum = 0.0f;  
-    // define a max
+    // Define a max
     float max = input_values[0] ; 
     for(int i = 1; i<output_layer_size; i++) 
         max = input_values[i] > max ? input_values[i] : max; 
 
-    // collect the sum apply
+    // Collect the sum apply
     for(int i = 0; i<output_layer_size; i++) {
         input_values[i]=exp(input_values[i]- max); 
         sum += input_values[i]; 
     }
 
-    // assign values applied to softmax 
+    // Assign values applied to softmax 
     for(int i = 0; i<output_layer_size; i++) {
         input_values[i] /= sum; 
     }
@@ -185,7 +188,7 @@ void forward_propagation(Layer * layer, float * input, float * output) {
         // Start to initialize outputs with biases
         output[i] = layer->biases[i];  
         for (int j = 0 ; j < previous_output_nodes; j ++ ){
-            // associate 
+            // Add the weights multiplied by the input values 
             output[i] +=  input[j] * layer->weights[ j * current_output_nodes + i ];
         }
     }
@@ -194,14 +197,16 @@ void forward_propagation(Layer * layer, float * input, float * output) {
 }
 
 
-
+// Forward pass
 void forward_pass(Network *network, float *input_values, float **output_values, float leaky_relu_coefficient) {
+    
+    // Check if the network is valid
     if (!network || !input_values || !output_values) {
         perror("Invalid arguments passed to forward_pass.");
         exit(EXIT_FAILURE);
     }
-
-    float *current_input = input_values; // Start with the input layer
+    // Start with the input layer
+    float *current_input = input_values; 
 
     for (int i = 0; i < network->total_layers; i++) {
         // Perform forward propagation
@@ -224,12 +229,13 @@ void forward_pass(Network *network, float *input_values, float **output_values, 
 // BACKWARD
 // Output gradient
 void output_gradient(float *output_values, float *output_gradient, float label, int output_size) {
+    // Check if the output values, gradient, and size are valid
     if (!output_values || !output_gradient || output_size <= 0) {
         perror("Incorrect output values, size or gradient");
         exit(EXIT_FAILURE);
     }
 
-    // compute outgradient
+    // Compute outgradient
     for (int i = 0; i < output_size; i++) {
         output_gradient[i] = output_values[i] - (i == (int)label ? 1.0f : 0.0f);
     }
@@ -260,6 +266,7 @@ float computed_value_gradient(float activated_gradient, float leaky_relu_coeffic
 // Backward propagation
 void backward_propagation(Layer *layer, float *input_values, float *next_layer_activated_gradients,
                           float *current_layer_activated_gradients, float derivative_lrelu_coefficient, float learning_rate, bool isLastLayer) {
+    // Check if the arguments are valid
     if (!layer || !input_values || !next_layer_activated_gradients || !current_layer_activated_gradients) {
         perror("Invalid arguments for backward_propagation");
         exit(EXIT_FAILURE);
@@ -270,6 +277,7 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
         printf("The input layer has no weights or biases to update.\n");
     } else {
 
+    // Get the number of nodes in the previous and current layers
     int previous_output_nodes = layer->input_size;
     int current_output_nodes = layer->output_size;
 
@@ -316,32 +324,29 @@ void backward_propagation(Layer *layer, float *input_values, float *next_layer_a
     }
 }
 
+// Backward pass
 void backward_pass(Network *network, float **output_values, float leaky_relu_coefficient, float learning_rate, float label) {
+    // Check if the arguments are valid
     if (!network || !output_values) {
         perror("Invalid arguments for backward_pass");
         exit(EXIT_FAILURE);
     }
 
-    printf("\nStarting Backward Propagation...\n");
-
-    // Check network validity
-    printf("Network has %d layers.\n", network->total_layers);
-
     // Allocate gradients for each layer without using malloc or calloc to avoid memory leaks 
-    // get the maximum size of the output layer
+    // Get the maximum size of the output layer
     int max = 0;
     for (int i = 0; i < network->total_layers; i++) {
         max = network->layers[i]->output_size > max ? network->layers[i]->output_size : max;
     }
-
+    // Initialize gradients for each layer
     float gradients[network->total_layers][max];
-    
     for (int i = 0; i < network->total_layers; i++) {
         for (int j = 0; j < network->layers[i]->output_size; j++) {
             gradients[i][j] = 0.0f;
         }
     }
     
+    // Perform output gradient computation for the last layer
     output_gradient(
         output_values[network->total_layers - 1],       // Output values of the last layer
         gradients[network->total_layers - 1],          // Gradient storage for the last layer
@@ -362,8 +367,6 @@ void backward_pass(Network *network, float **output_values, float leaky_relu_coe
             isLastLayer                                 // Is this the last layer?
         );
     }
-
-    printf("\nBackward Propagation Completed.\n");
 }
 
 
@@ -446,7 +449,7 @@ void load_train(Network *network, char *filename) {
             }
         }
     }
-
+    // Close the file
     fclose(file);
     printf("Training loaded successfully from %s\n", filename);
 }
@@ -455,6 +458,7 @@ void load_train(Network *network, char *filename) {
 // Save training
 
 void save_train(Network *network, char *filename) {
+    // Open the file
     FILE *file = fopen(filename, "w");
     if (!file) {
         perror("Failed to open file for saving");
@@ -485,7 +489,7 @@ void save_train(Network *network, char *filename) {
         }
         fprintf(file, "\n");
     }
-
+    // Close the file
     fclose(file);
     printf("Training saved to %s\n", filename);
 }
@@ -503,7 +507,7 @@ bool is_saved(char *filename) {
         fclose(file);
         return false;
     }
-
+    // Close the file
     fclose(file);
     return true;
 }
@@ -547,7 +551,7 @@ float **read_mnist_images(const char *filename, int *num_images, int *image_size
             images[i][j] = buffer[j] > 127 ? 1.0f : 0.0f;
         }
     }
-
+    // Free buffer and close the file
     free(buffer);
     fclose(file);
 
@@ -565,23 +569,25 @@ float *read_mnist_labels(const char *filename, int *num_labels) {
     // Read headers
     int magic_number = 0;
     fread(&magic_number, sizeof(int), 1, file);
-    magic_number = __builtin_bswap32(magic_number); // Convert to big-endian 
-
+    // Convert to big-endian
+    magic_number = __builtin_bswap32(magic_number); 
+    // Check if the magic number is valid : 2049 because it is the label file
     if (magic_number != 2049) {
         fprintf(stderr, "Invalid magic number: %d\n", magic_number);
         fclose(file);
         exit(EXIT_FAILURE);
     }
 
+    // Read number of labels
     fread(num_labels, sizeof(int), 1, file);
     *num_labels = __builtin_bswap32(*num_labels);
-
+    // Check if the number of labels is valid
     if (*num_labels <= 0) {
         fprintf(stderr, "Invalid number of labels: %d\n", *num_labels);
         fclose(file);
         exit(EXIT_FAILURE);
     }
-
+    // Display the magic number and number of labels
     printf("Magic number: %d\n", magic_number);
     printf("Number of labels: %d\n", *num_labels);
 
@@ -599,7 +605,7 @@ float *read_mnist_labels(const char *filename, int *num_labels) {
     for (int i = 0; i < *num_labels; i++) {
         labels[i] = (float)temp_labels[i];
     }
-
+    // Free temporary labels and close the file
     free(temp_labels);
     fclose(file);
 
@@ -622,21 +628,22 @@ void training(Network *network, float learning_rate, int epochs, float ***output
     }
 
     // Define batch size
-    int batch_size = 32; // Common convention for batch size
-    int num_batches = (num_images + batch_size - 1) / batch_size; // Round up
+    int batch_size = 32; // Common convention for batch size : 32, 64, 128, 256, etc.
+    int num_batches = (num_images + batch_size - 1) / batch_size; // Round up : ceil(num_images / batch_size)
 
-    // Training loop
+    // Training loop : for each epoch and batch size : forward pass, backward pass, and update
     for (int epoch = 0; epoch < epochs; epoch++) {
+        // Initialize epoch loss
         float epoch_loss = 0.0f;
 
         printf("Epoch %d/%d\n", epoch + 1, epochs);
-
+        // Loop through each batch
         for (int batch = 0; batch < num_batches; batch++) {
             int batch_start = batch * batch_size;
             int current_batch_size = (batch_start + batch_size > num_images) ? (num_images - batch_start) : batch_size;
-
+            // Initialize batch loss
             float batch_loss = 0.0f;
-
+            // Loop through each image in the batch
             for (int i = 0; i < current_batch_size; i++) {
                 int idx = batch_start + i;
                 float *input_values = images[idx];
@@ -684,6 +691,7 @@ void training(Network *network, float learning_rate, int epochs, float ***output
 }
 
 
+// TESTING
 
 // TESTING AND ACCURACY (Test does not update weights and biases - its not a training function)
 void test(Network *network, float **output_values, float *input_values, float *label_values, float * score) {
@@ -795,7 +803,7 @@ int main(int argc, char **argv) {
     // Allocate ( and initialize) network
     Network *network = malloc(sizeof(Network)); 
  
-
+    // Check if the training is already saved
     if (is_saved(fileName)) {
 
         load_train(network,fileName); 
@@ -820,9 +828,9 @@ int main(int argc, char **argv) {
     printf("Network has %d total layers and %d hidden layers\n", network->total_layers, network->nb_hidden_layers);
 
     // define the learning rate for 60000 images
-    float learning_rate = 0.00001;
+    float learning_rate = 0.0001;
     // define the number of epochs
-    int epochs = 1;
+    int epochs = 4;
 
     // Allocate memory for output values
     float **output_values = NULL;

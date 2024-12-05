@@ -121,6 +121,7 @@ This function performs forward propagation through the network, computing the ac
 
 2. **Hidden Layers**: For each hidden layer, the following steps are performed:
 - Compute the weighted sum of inputs (logits):
+
 $$
 z^{(l)} = W^{(l)} \cdot a^{(l-1)} + b^{(l)}
 $$
@@ -132,26 +133,33 @@ where:
   - $b^{(l)}$ is the bias vector for layer $l$
 
 Apply the LeakyReLU activation function to compute the activated value:
-$$ 
+
+$$
 a^{(l)} = \text{LeakyReLU}(z^{(l)})
 $$
+
 where LeakyReLU is defined as:
+
 $$
 \text{LeakyReLU}(x) = \begin{cases} 
 x & \text{if } x > 0 \\
 \alpha x & \text{if } x \leq 0 
 \end{cases}
 $$
+
 and $\alpha$ is a small constant (``leaky_relu_coefficient``) (e.g., 0.00001).
 
 3. **Output Layer**: The final layer computes the logits and applies the softmax activation function to produce probabilities:
+
 $$
 z^{(L)} = W^{(L)} \cdot a^{(L-1)} + b^{(L)}
 $$
+
 $$
 \hat{y} = \text{softmax}(z^{(L)}) = \frac{e^{z^{(L)}}}{\sum_{j} e^{z^{(L)}_j}}
 $$
-    where $\hat{y}$ is the output probability vector.
+
+where $\hat{y}$ is the output probability vector.
 
 
 ## Backward Propagation
@@ -183,7 +191,8 @@ This function performs backward propagation, computing the error at each layer a
 $$
 \delta^{(L)} = \hat{y} - y
 $$
-    where $\hat{y}$ is the predicted output probability vector and $y$ is the true label (one-hot encoded, e.g., [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]).
+
+where $\hat{y}$ is the predicted output probability vector and $y$ is the true label (one-hot encoded, e.g., [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]).
 
 2. **Activation Value Gradient**: Compute the gradient of the activation values for the current layer:
     ```c
@@ -195,8 +204,24 @@ $$
         return gradient;
     }
     ```
-$\delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot f'(z^{(l)}) => \delta^{(l)} = \sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i \odot f'(z^{(l)})$
-    where $\odot$ denotes element-wise multiplication and $f'(z^{(l)})$ is the derivative of the activation function. The sum $\sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i$ is computed for each neuron in the next layer, it means that we are computing the gradient of the activated values of the current layer using the gradients of the activated values of the next layer.
+    
+$$
+\delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot f'(z^{(l)}) => \delta^{(l)} = \sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i \odot f'(z^{(l)})
+$$
+
+where $\odot$ denotes element-wise multiplication. The derivative of the activation function : 
+
+$$
+f'(z^{(l)})
+$$
+
+This sum : 
+
+$$
+\sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i
+$$
+
+is computed for each neuron in the next layer, it means that we are computing the gradient of the activated values of the current layer using the gradients of the activated values of the next layer.
 
 3. **Computed Value Gradient**: Compute the gradient of the computed values using the derivative of the LeakyReLU activation function:
     ```c
@@ -205,10 +230,13 @@ $\delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot f'(z^{(l)}) => \delta^{(l)} =
         return activated_gradient * leaky_relu_grad;
     }
     ```
+    
 $$
 \frac{\partial L}{\partial z^{(l)}} = \delta^{(l)} \odot f'(z^{(l)})
 $$
-    where $f'(z^{(l)})$ is the derivative of the LeakyReLU activation function. This step computes the gradient of the computed values of the current layer using the gradient of the activated values of the current layer. The derivative of the LeakyReLU activation function is used to compute the gradient of the computed values.
+
+This step computes the gradient of the computed values of the 
+current layer using the gradient of the activated values of the current layer. The derivative of the LeakyReLU activation function is used to compute the gradient of the computed values.
 
 4. **Update Weights and Biases**: Update the weights and biases using the computed gradients and the learning rate:
     ```c
@@ -219,12 +247,15 @@ $$
         layer->bias[i] -= learning_rate * current_layer_activated_gradients[i];
     }
     ```
-    ```math
-    $W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}$
-    ```
-    ```math
-    b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}$
-    ```
+    
+$$
+W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}
+$$
+   
+$$
+b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
+$$
+   
 where $\eta$ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate. Here we are using the gradient descent optimization algorithm to update the weights and biases.
 
 This process ensures that the network learns by minimizing the loss function through gradient descent.
@@ -289,20 +320,28 @@ This function trains the neural network using the MNIST dataset, adjusting the w
         batch_loss += loss;
     ```
     
-    $$
-    L = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)
-    $$
-    where $y$ is the true label and $\hat{y}$ is the predicted output probability vector.
+$$
+L = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)
+$$
+   
+where $y$ is the true label and $\hat{y}$ is the predicted output probability vector.
 
-5. **Backward Pass**: Adjust the weights and biases using gradient descent for each layer.
+6. **Backward Pass**: Adjust the weights and biases using gradient descent for each layer.
     ```c
     void backward_pass(Network *network, float **output_values, float leaky_relu_coefficient, float learning_rate, float label)
     ```
-- $W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}$
-- $b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}$
-    where $\eta$ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate.
 
-6. **Save Training**: Save the trained network parameters to a file.
+$$
+W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}
+$$
+   
+$$
+b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
+$$
+
+The weights and biases are updated using the computed gradients and the learning rate.
+
+7. **Save Training**: Save the trained network parameters to a file.
     ```c
     // Save the training
     void save_train(Network *network, char *save_file_name)

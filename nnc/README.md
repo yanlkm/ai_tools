@@ -219,11 +219,12 @@ $$
         layer->bias[i] -= learning_rate * current_layer_activated_gradients[i];
     }
     ```
-```mathjax
-$W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}$
-```
-$b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}$
-
+    ```math
+    $W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}$
+    ```
+    ```math
+    b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}$
+    ```
 where $\eta$ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate. Here we are using the gradient descent optimization algorithm to update the weights and biases.
 
 This process ensures that the network learns by minimizing the loss function through gradient descent.
@@ -287,8 +288,10 @@ This function trains the neural network using the MNIST dataset, adjusting the w
         float loss = -log(output[(int)label] + 1e-9); // Add small value to avoid log(0)
         batch_loss += loss;
     ```
-    - $L = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)$
-          where $y$ is the true label and $\hat{y}$ is the predicted output probability vector.
+    ```math
+    L = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)
+    ```
+    where $y$ is the true label and $\hat{y}$ is the predicted output probability vector.
 
 5. **Backward Pass**: Adjust the weights and biases using gradient descent for each layer.
     ```c

@@ -120,36 +120,37 @@ This function performs forward propagation through the network, computing the ac
 1. **Input Layer**: The input data is fed into the network.
 
 2. **Hidden Layers**: For each hidden layer, the following steps are performed:
-    - Compute the weighted sum of inputs (logits):
-    $$
-    z^{(l)} = W^{(l)} \cdot a^{(l-1)} + b^{(l)}
-    $$
-    where:
-    - $z^{(l)}$ is the vector of logits for layer $l$
-    - $W^{(l)}$ is the weight matrix for layer $l$
-    - $a^{(l-1)}$ is the activation from the previous layer
-    - $b^{(l)}$ is the bias vector for layer $l$
+- Compute the weighted sum of inputs (logits):
+$$
+z^{(l)} = W^{(l)} \cdot a^{(l-1)} + b^{(l)}
+$$
 
-    - Apply the LeakyReLU activation function to compute the activated value:
-    $$
-    a^{(l)} = \text{LeakyReLU}(z^{(l)})
-    $$
-    where LeakyReLU is defined as:
-    $$
-    \text{LeakyReLU}(x) = \begin{cases} 
-    x & \text{if } x > 0 \\
-    \alpha x & \text{if } x \leq 0 
-    \end{cases}
-    $$
-    and $\alpha$ is a small constant (``leaky_relu_coefficient``) (e.g., 0.00001).
+where:
+  - $z^{(l)}$ is the vector of logits for layer $l$
+  - $W^{(l)}$ is the weight matrix for layer $l$
+  - $a^{(l-1)}$ is the activation from the previous layer
+  - $b^{(l)}$ is the bias vector for layer $l$
+
+Apply the LeakyReLU activation function to compute the activated value:
+$$ 
+a^{(l)} = \text{LeakyReLU}(z^{(l)})
+$$
+where LeakyReLU is defined as:
+$$
+\text{LeakyReLU}(x) = \begin{cases} 
+x & \text{if } x > 0 \\
+\alpha x & \text{if } x \leq 0 
+\end{cases}
+$$
+and $\alpha$ is a small constant (``leaky_relu_coefficient``) (e.g., 0.00001).
 
 3. **Output Layer**: The final layer computes the logits and applies the softmax activation function to produce probabilities:
-    $$
-    z^{(L)} = W^{(L)} \cdot a^{(L-1)} + b^{(L)}
-    $$
-    $$
-    \hat{y} = \text{softmax}(z^{(L)}) = \frac{e^{z^{(L)}}}{\sum_{j} e^{z^{(L)}_j}}
-    $$
+$$
+z^{(L)} = W^{(L)} \cdot a^{(L-1)} + b^{(L)}
+$$
+$$
+\hat{y} = \text{softmax}(z^{(L)}) = \frac{e^{z^{(L)}}}{\sum_{j} e^{z^{(L)}_j}}
+$$
     where $\hat{y}$ is the output probability vector.
 
 
@@ -179,9 +180,9 @@ This function performs backward propagation, computing the error at each layer a
         }
     }
     ```
-    $$
-    \delta^{(L)} = \hat{y} - y
-    $$
+$$
+\delta^{(L)} = \hat{y} - y
+$$
     where $\hat{y}$ is the predicted output probability vector and $y$ is the true label (one-hot encoded, e.g., [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]).
 
 2. **Activation Value Gradient**: Compute the gradient of the activation values for the current layer:
@@ -194,9 +195,9 @@ This function performs backward propagation, computing the error at each layer a
         return gradient;
     }
     ```
-    $$
-    \delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot f'(z^{(l)}) => \delta^{(l)} = \sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i \odot f'(z^{(l)})
-    $$
+$$
+\delta^{(l)} = (W^{(l+1)})^T \delta^{(l+1)} \odot f'(z^{(l)}) => \delta^{(l)} = \sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i \odot f'(z^{(l)})
+$$
     where $\odot$ denotes element-wise multiplication and $f'(z^{(l)})$ is the derivative of the activation function. The sum $\sum_{i=1}^{n} W^{(l+1)}_i \delta^{(l+1)}_i$ is computed for each neuron in the next layer, it means that we are computing the gradient of the activated values of the current layer using the gradients of the activated values of the next layer.
 
 3. **Computed Value Gradient**: Compute the gradient of the computed values using the derivative of the LeakyReLU activation function:
@@ -206,9 +207,9 @@ This function performs backward propagation, computing the error at each layer a
         return activated_gradient * leaky_relu_grad;
     }
     ```
-    $$
-    \frac{\partial L}{\partial z^{(l)}} = \delta^{(l)} \odot f'(z^{(l)})
-    $$
+$$
+\frac{\partial L}{\partial z^{(l)}} = \delta^{(l)} \odot f'(z^{(l)})
+$$
     where $f'(z^{(l)})$ is the derivative of the LeakyReLU activation function. This step computes the gradient of the computed values of the current layer using the gradient of the activated values of the current layer. The derivative of the LeakyReLU activation function is used to compute the gradient of the computed values.
 
 4. **Update Weights and Biases**: Update the weights and biases using the computed gradients and the learning rate:
@@ -220,12 +221,12 @@ This function performs backward propagation, computing the error at each layer a
         layer->bias[i] -= learning_rate * current_layer_activated_gradients[i];
     }
     ```
-    $$
-    W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}
-    $$
-    $$
-    b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
-    $$
+$$
+W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}
+$$
+$$
+b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
+$$
     where $\eta$ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate. Here we are using the gradient descent optimization algorithm to update the weights and biases.
 
 This process ensures that the network learns by minimizing the loss function through gradient descent.
@@ -289,21 +290,21 @@ This function trains the neural network using the MNIST dataset, adjusting the w
         float loss = -log(output[(int)label] + 1e-9); // Add small value to avoid log(0)
         batch_loss += loss;
     ```
-    $$
-    L = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)
-    $$
+$$
+L = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)
+$$
     where $y$ is the true label and $\hat{y}$ is the predicted output probability vector.
 
 5. **Backward Pass**: Adjust the weights and biases using gradient descen for each layer.
     ```c
     void backward_pass(Network *network, float **output_values, float leaky_relu_coefficient, float learning_rate, float label)
     ```
-    $$
-    W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}
-    $$
-    $$
-    b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
-    $$
+$$
+W^{(l)} = W^{(l)} - \eta \frac{\partial L}{\partial W^{(l)}}
+$$
+$$
+b^{(l)} = b^{(l)} - \eta \frac{\partial L}{\partial b^{(l)}}
+$$
     where $\eta$ is the learning rate. The weights and biases are updated using the computed gradients and the learning rate.
 
 6. **Save Training**: Save the trained network parameters to a file.

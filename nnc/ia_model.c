@@ -828,7 +828,7 @@ int main(int argc, char **argv) {
     printf("Network has %d total layers and %d hidden layers\n", network->total_layers, network->nb_hidden_layers);
 
     // define the learning rate for 60000 images
-    float learning_rate = 0.0001;
+    float learning_rate = 0.0005;
     // define the number of epochs
     int epochs = 4;
 

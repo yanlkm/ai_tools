@@ -288,9 +288,10 @@ This function trains the neural network using the MNIST dataset, adjusting the w
         float loss = -log(output[(int)label] + 1e-9); // Add small value to avoid log(0)
         batch_loss += loss;
     ```
-    ```math
+    
+    $$
     L = -\sum_{i=1}^{n} y_i \log(\hat{y}_i)
-    ```
+    $$
     where $y$ is the true label and $\hat{y}$ is the predicted output probability vector.
 
 5. **Backward Pass**: Adjust the weights and biases using gradient descent for each layer.

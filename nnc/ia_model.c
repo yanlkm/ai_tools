@@ -830,13 +830,45 @@ int main(int argc, char **argv) {
     // define the learning rate for 60000 images
     float learning_rate = 0.0005;
     // define the number of epochs
-    int epochs = 4;
+    int epochs = 6;
 
     // Allocate memory for output values
     float **output_values = NULL;
     initialize_output_layer_values(network, &output_values);
     // Training
-    training(network, learning_rate, epochs, &output_values, fileName, images_file, labels_file);
+    //training(network, learning_rate, epochs, &output_values, fileName, images_file, labels_file);
+
+    // read test files : 
+    char * images_file_test = "data/t10k-images-idx3-ubyte/t10k-images-idx3-ubyte"; 
+    char * labels_file_test = "data/t10k-labels-idx1-ubyte/t10k-labels-idx1-ubyte";
+
+    // get the first image to test 
+    int num_images, image_size, num_labels;
+
+    float **images = read_mnist_images(images_file_test, &num_images, &image_size);
+    float *labels = read_mnist_labels(labels_file_test, &num_labels);
+
+
+    if (num_images != num_labels) {
+        perror("Number of images and labels don't match");
+        exit(EXIT_FAILURE);
+    }
+
+    // re intialized the output values
+    free_output_layer_values(network, output_values);
+    initialize_output_layer_values(network, &output_values);
+
+    // test the neural network 
+    test(network, output_values, images[1], &labels[1], &learning_rate);
+
+    // interpret the result
+    printf("The score is : %f\n", learning_rate);
+    // detail the result 
+    printf(" According to the label, the image is a : %d\n", (int)labels[1]);
+    printf("the ouput of the network is : \n");
+    for (int i = 0; i < 10; i++) {
+        printf(" %f of propability for digit : %d\n", output_values[network->total_layers - 1][i],i);
+    }
 
     // Free all resources
     free_output_layer_values(network, output_values);

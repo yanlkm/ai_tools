@@ -170,8 +170,8 @@ train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuff
 # Create an instance of the model
 model = CatIdentifier(num_classes=num_classes).to(device)
 
-# Define the loss function
-criterion = nn.CrossEntropyLoss()
+# Define the loss function (use binary cross-entry loss)
+criterion = nn.BCELoss()
 
 # Define the optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -186,7 +186,8 @@ for epoch in range(num_epochs):
 
         # Forward pass
         outputs = model(images)
-        loss = criterion(outputs, labels)
+        # Calculate the loss using the labels un-squeezed to 1 dimension
+        loss = criterion(outputs, labels.unsqueeze(1).float())
 
         # Backward and optimize
         optimizer.zero_grad()

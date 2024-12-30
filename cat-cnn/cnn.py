@@ -19,8 +19,9 @@ from PIL import Image
 #       not-cat.1.jpg
 #       ...
 #     labels.csv
+#   saves/
 #   cnn.py
-#   dataset_maker.c
+#   /dataset_maker
 
 
 # Check if GPU is available
@@ -39,7 +40,7 @@ csv_file_path = f'{data_dir}/labels.csv'
 
 
 # Define the CatIdentifier convolutional neural network
-class CatDataset():
+class CatDataset(torch.utils.data.Dataset):
     def __init__(self, csv_data, transform=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data = csv_data
@@ -157,11 +158,43 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Load the data from the csv file and create a DataFrame
-data = pd.read_csv(csv_file_path)
+# Load the data from the csv file and create a DataFrame considering the head of the csv file
+data = pd.read_csv(filepath_or_buffer=csv_file_path, header=2, usecols=['image_path', 'label'])
 
 # Create an instance of the CatDataset class
 dataset = CatDataset(data, transform=transform)
 
 # Create a DataLoader object to load the data in batches for training
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+# Create an instance of the model
+model = CatIdentifier(num_classes=num_classes).to(device)
+
+# Define the loss function
+criterion = nn.CrossEntropyLoss()
+
+# Define the optimizer
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+# Train the model
+total_step = len(train_loader)
+
+for epoch in range(num_epochs):
+    for i, (images, labels) in enumerate(train_loader):
+        # Move the images and labels to the device
+        images = images.to(device)
+        labels = labels.to(device)
+
+        # Forward pass
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if (i + 1) % 100 == 0:
+            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+                  .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
+        # Save the model checkpoint
+        torch.save(model.state_dict(), 'saves/model.ckpt')

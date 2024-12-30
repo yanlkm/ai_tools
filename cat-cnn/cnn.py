@@ -20,7 +20,7 @@ from PIL import Image
 #       ...
 #     labels.csv
 #   cnn.py
-#   label_formatter.c
+#   dataset_maker.c
 
 
 # Check if GPU is available

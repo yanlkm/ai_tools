@@ -95,7 +95,7 @@ int main( int argc, char *argv[] )  {
 
     // Directotry paths
     const char *cat_dir = "../data/cats";
-    const char *non_cat_dir = "../data/cats";
+    const char *non_cat_dir = "../data/non-cats";
 
     // CSV file path
     const char *csv_file_path = "../data/labels.csv";

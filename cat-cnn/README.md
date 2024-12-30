@@ -40,7 +40,27 @@ The training process involves the following steps:
 4. **Train**: Loop through the dataset for a specified number of epochs, performing forward and backward passes, and updating the model weights.
 5. **Save Checkpoints**: Save the model checkpoints periodically during training.
 
+### Training set up on Google Colab:
+To train the model on Google Colab, you first need to upload the dataset directory (containing cat and non-cat images) to your Google Drive. Then, you can mount your Google Drive in the Colab notebook and access the dataset files.
+**Advices**: I recommend to upload .zip file containing the dataset directory to Google Drive and unzip it in the Colab notebook using code. 
+
+1. **Mount Google Drive**: Use the following code snippet to mount your Google Drive in the Colab notebook:
+```python
+from google.colab import drive
+drive.mount('/content/drive')
+```
+2. **Access Dataset Files**: You can access the dataset files in your Google Drive using the path `/content/drive/My Drive/path_to_dataset`.
+3. **Unzip Dataset**: If you uploaded a .zip file, you can unzip it using the following code:
+```python
+import zipfile
+with zipfile.ZipFile('/content/drive/My Drive/path_to_dataset.zip', 'r') as zip_ref:
+    zip_ref.extractall('/content/catcnn')
+```
+4. **Move to Dataset Directory**: Change the current working directory to the dataset directory.
+5. **Train the Model**: Run the `cnn.py` script to train the CNN model on the dataset.
+
 ### Example Training Loop:
+Here we assume that the model, loss function, optimizer are already defined and the training setup is complete. The training loop looks like this:
 ```python
 for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):

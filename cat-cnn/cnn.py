@@ -197,5 +197,5 @@ for epoch in range(num_epochs):
         if (i + 1) % 100 == 0:
             print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                   .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
-        # Save the model checkpoint
-        torch.save(model.state_dict(), 'saves/model.ckpt')
+        # Save the model checkpoint through the torch.save function
+        torch.save(model.state_dict(), 'saves/model.pth')

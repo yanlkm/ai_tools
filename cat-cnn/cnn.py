@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torchvision.transforms import transforms
 import pandas as pd
+import os
 from PIL import Image
 
 # Define constants
@@ -167,8 +168,12 @@ dataset = CatDataset(data, transform=transform)
 # Create a DataLoader object to load the data in batches for training
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-# Create an instance of the model
-model = CatIdentifier(num_classes=num_classes).to(device)
+# Create an instance of the model : if there is no save, create an instance
+if os.path.exists('saves/model.pth'):
+    model = CatIdentifier(num_classes=num_classes).to(device)
+    model.load_state_dict(torch.load('saves/model.pth'))
+else:
+    model = CatIdentifier(num_classes=num_classes).to(device)
 
 # Define the loss function (use binary cross-entry loss)
 criterion = nn.BCELoss()
@@ -178,24 +183,49 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 # Train the model
 total_step = len(train_loader)
 
-for epoch in range(num_epochs):
-    for i, (images, labels) in enumerate(train_loader):
-        # Move the images and labels to the device
-        images = images.to(device)
-        labels = labels.to(device)
 
-        # Forward pass
-        outputs = model(images)
-        # Calculate the loss using the labels un-squeezed to 1 dimension
-        loss = criterion(outputs, labels.unsqueeze(1).float())
+# Define the train_model function
+def train_model(num_epochs, train_loader, model, criterion, optimizer):
+    for epoch in range(num_epochs):
+        for i, (images, labels) in enumerate(train_loader):
+            # Move the images and labels to the device
+            images = images.to(device)
+            labels = labels.to(device)
 
-        # Backward and optimize
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            # Forward pass
+            outputs = model(images)
+            # Calculate the loss using the labels un-squeezed to 1 dimension
+            loss = criterion(outputs, labels.unsqueeze(1).float())
 
-        if (i + 1) % 100 == 0:
-            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                  .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
-        # Save the model checkpoint through the torch.save function
-        torch.save(model.state_dict(), 'saves/model.pth')
+            # Backward and optimize
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            if (i + 1) % 100 == 0:
+                print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
+                      .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
+            # Save the model checkpoint through the torch.save function
+            torch.save(model.state_dict(), 'saves/model.pth')
+
+
+# Call the train_model function
+train_model(num_epochs, train_loader, model, criterion, optimizer)
+
+
+# Function to predict the class cat of an image
+def predict_cat_image(image_url):
+    # Load the image from the image_url
+    image = Image.open(image_url).convert('RGB')
+    # Apply the transformation to the image
+    image = transform(image).unsqueeze(0)
+    # Load the model and set it to evaluation mode
+    cat_identifier_model = CatIdentifier(num_classes=num_classes).to(device)
+    cat_identifier_model.load_state_dict(torch.load('saves/model.pth'))
+    cat_identifier_model.eval()
+    # Perform the forward pass
+    with torch.no_grad():
+        outputs = cat_identifier_model(image.to(device))
+        # Get the predicted class
+        cat_prediction = outputs[0][0].item()
+        return cat_prediction

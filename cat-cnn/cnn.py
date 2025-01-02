@@ -234,7 +234,7 @@ def predict_cat_image(image_bytes_input):
 
     # Load the model and set it to evaluation mode
     cat_identifier_model = CatIdentifier(num_classes=num_classes).to(device)
-    cat_identifier_model.load_state_dict(torch.load('saves/model.pth'))
+    cat_identifier_model.load_state_dict(torch.load('saves/model.pth', weights_only=True))
     cat_identifier_model.eval()
 
     # Perform the forward pass

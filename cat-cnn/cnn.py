@@ -252,7 +252,7 @@ def predict_cat_image(image_bytes_input):
 
 
 # Test a prediction
-image_path = '/home/yan/Documents/Infoperso/MyBiggestShit/test-pytorch/data/cats/cat_0.png'
+image_path = 'my-cat.jpg'
 image = Image.open(image_path)
 image_bytes = io.BytesIO()
 image.save(image_bytes, format='JPEG')

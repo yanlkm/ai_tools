@@ -1,4 +1,6 @@
 # imports
+import io
+
 import torch
 import torch.nn as nn
 from torchvision.transforms import transforms
@@ -113,23 +115,29 @@ class CatIdentifier(nn.Module):
         )
         # After the pooling layer, the size of the output is 28/2 = 14
         # Define a flatten layer
-        self.flatten = nn.Flatten()
-        # Define a fully connected layer with 128 nodes as input and another 64 nodes as output
-        self.fc1 = nn.Linear(
-            in_features=128 * 14 * 14,
-            out_features=64,
-            bias=True
-        )
+        self.flatten_size = self._get_flatten_size()
+        # Define a fully connected layer with 128 nodes as input and another 64 node as output
+        self.fc1 = nn.Linear(self.flatten_size, 64)
         # Define a ReLU activation function
         self.relu4 = nn.ReLU()
         # Define a fully connected layer with 64 nodes as input and another 1 node as output which is the final output
         self.fc2 = nn.Linear(
-            in_features=64,
+            in_features=64,  # This remains the same
             out_features=num_classes,
             bias=True
         )
         # Define a sigmoid activation function
         self.sigmoid = nn.Sigmoid()
+
+    # Get dynamically the size
+    def _get_flatten_size(self):
+        # Pass a dummy tensor to calculate the output size after convolution and pooling
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, 3, 128, 128)
+            dummy_output = self.pool3(self.relu3(
+                self.conv3(self.pool2(self.relu2(self.conv2(self.pool1(self.relu1(self.conv1(dummy_input)))))))))
+            # We need to get the size of the features dimension after flattening.
+            return dummy_output.shape[1] * dummy_output.shape[2] * dummy_output.shape[3]
 
     # Perform the forward pass
     def forward(self, x):
@@ -139,9 +147,9 @@ class CatIdentifier(nn.Module):
         out = self.pool2(self.relu2(self.conv2(out)))
         # Perform the forward pass through the third layer
         out = self.pool3(self.relu3(self.conv3(out)))
-        # Flatten the output of the third
-        out = self.flatten(out)
-        # Perform the forward pass through the fourth layer
+        # Perform the forward pass through the fourth layer after got flattened
+        # Reshape the output before feeding to fc1 using "view" :
+        out = out.view(-1, self.flatten_size)
         out = self.relu4(self.fc1(out))
         # Perform the forward pass through the fifth layer and return the output passed through the sigmoid
         # activation function
@@ -160,13 +168,13 @@ transform = transforms.Compose([
 ])
 
 # Load the data from the csv file and create a DataFrame considering the head of the csv file
-data = pd.read_csv(filepath_or_buffer=csv_file_path, header=2, usecols=['image_path', 'label'])
+#data = pd.read_csv(filepath_or_buffer=csv_file_path, header=2, usecols=['image_path', 'label'])
 
 # Create an instance of the CatDataset class
-dataset = CatDataset(data, transform=transform)
+#dataset = CatDataset(data, transform=transform)
 
 # Create a DataLoader object to load the data in batches for training
-train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+#train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Create an instance of the model : if there is no save, create an instance
 if os.path.exists('saves/model.pth'):
@@ -181,7 +189,7 @@ criterion = nn.BCELoss()
 # Define the optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 # Train the model
-total_step = len(train_loader)
+total_step = 1  #len(train_loader)
 
 
 # Define the train_model function
@@ -210,22 +218,43 @@ def train_model(num_epochs, train_loader, model, criterion, optimizer):
 
 
 # Call the train_model function
-train_model(num_epochs, train_loader, model, criterion, optimizer)
+#train_model(num_epochs, train_loader, model, criterion, optimizer)
 
 
 # Function to predict the class cat of an image
-def predict_cat_image(image_url):
-    # Load the image from the image_url
-    image = Image.open(image_url).convert('RGB')
-    # Apply the transformation to the image
-    image = transform(image).unsqueeze(0)
+def predict_cat_image(image_bytes_input):
+    # Open the image using PIL and convert it to RGB (3 channels)
+    image_input = Image.open(io.BytesIO(image_bytes_input)).convert('RGB')
+
+    # Resize the image before applying the transform
+    image_input = image_input.resize((128, 128))
+
+    # Apply the same transformations used during training
+    image_input = transform(image_input)
+
     # Load the model and set it to evaluation mode
     cat_identifier_model = CatIdentifier(num_classes=num_classes).to(device)
     cat_identifier_model.load_state_dict(torch.load('saves/model.pth'))
     cat_identifier_model.eval()
+
     # Perform the forward pass
     with torch.no_grad():
-        outputs = cat_identifier_model(image.to(device))
+        # Move the image to the device
+        image_input = image_input.to(device)
+
+        outputs = cat_identifier_model(image_input)
         # Get the predicted class
         cat_prediction = outputs[0][0].item()
-        return cat_prediction
+        if cat_prediction >= 0.5:
+            return 'cat'
+        else:
+            return 'not-cat'
+
+
+# Test a prediction
+image_path = '/home/yan/Documents/Infoperso/MyBiggestShit/test-pytorch/data/cats/cat_0.png'
+image = Image.open(image_path)
+image_bytes = io.BytesIO()
+image.save(image_bytes, format='JPEG')
+image_bytes = image_bytes.getvalue()
+print(predict_cat_image(image_bytes))

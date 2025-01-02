@@ -179,7 +179,7 @@ transform = transforms.Compose([
 # Create an instance of the model : if there is no save, create an instance
 if os.path.exists('saves/model.pth'):
     model = CatIdentifier(num_classes=num_classes).to(device)
-    model.load_state_dict(torch.load('saves/model.pth'))
+    model.load_state_dict(torch.load('saves/model.pth', weights_only=True))
 else:
     model = CatIdentifier(num_classes=num_classes).to(device)
 

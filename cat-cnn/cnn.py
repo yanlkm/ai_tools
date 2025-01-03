@@ -256,12 +256,12 @@ def predict_cat_image(image_bytes_input):
 
 
 # Test a prediction
-image_path = 'my-cat-image-path.jpg'
-image = Image.open(image_path)
-image_bytes = io.BytesIO()
-image.save(image_bytes, format='JPEG')
-image_bytes = image_bytes.getvalue()
-print(predict_cat_image(image_bytes))
+# image_path = 'my-cat-image-path.jpg'
+# image = Image.open(image_path)
+# image_bytes = io.BytesIO()
+# image.save(image_bytes, format='JPEG')
+# image_bytes = image_bytes.getvalue()
+# print(predict_cat_image(image_bytes))
 
 # Define the app
 app = fl.Flask(__name__)

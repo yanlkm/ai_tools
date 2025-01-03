@@ -6,6 +6,7 @@ import torch.nn as nn
 from torchvision.transforms import transforms
 import pandas as pd
 import os
+import flask as fl
 from PIL import Image
 
 # Define constants
@@ -157,7 +158,7 @@ class CatIdentifier(nn.Module):
         return out
 
 
-# Implement the training logic
+# Implement the training logic and prediction logic
 
 # Define function of the transformation to resize the image to a 3x128x128 tensor
 transform = transforms.Compose([
@@ -167,14 +168,16 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
+# Training section
+
 # Load the data from the csv file and create a DataFrame considering the head of the csv file
-#data = pd.read_csv(filepath_or_buffer=csv_file_path, header=2, usecols=['image_path', 'label'])
+# data = pd.read_csv(filepath_or_buffer=csv_file_path, header=2, usecols=['image_path', 'label'])
 
 # Create an instance of the CatDataset class
 #dataset = CatDataset(data, transform=transform)
 
 # Create a DataLoader object to load the data in batches for training
-#train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+# train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Create an instance of the model : if there is no save, create an instance
 if os.path.exists('saves/model.pth'):
@@ -188,8 +191,9 @@ criterion = nn.BCELoss()
 
 # Define the optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-# Train the model
-total_step = 1  #len(train_loader)
+
+# Train the model (remove 1 and uncomment the section below to train the model)
+total_step = 1  # len(train_loader)
 
 
 # Define the train_model function
@@ -218,7 +222,7 @@ def train_model(num_epochs, train_loader, model, criterion, optimizer):
 
 
 # Call the train_model function
-#train_model(num_epochs, train_loader, model, criterion, optimizer)
+# train_model(num_epochs, train_loader, model, criterion, optimizer)
 
 
 # Function to predict the class cat of an image
@@ -252,9 +256,30 @@ def predict_cat_image(image_bytes_input):
 
 
 # Test a prediction
-image_path = 'my-cat.jpg'
+image_path = 'my-cat-image-path.jpg'
 image = Image.open(image_path)
 image_bytes = io.BytesIO()
 image.save(image_bytes, format='JPEG')
 image_bytes = image_bytes.getvalue()
 print(predict_cat_image(image_bytes))
+
+# Define the app
+app = fl.Flask(__name__)
+
+
+# Define the predict function to be called when a POST request is made to the /predict endpoint
+@app.route('/predict', methods=['POST'])
+def predict():
+    if fl.request.method == 'POST':
+        # Get the file from the request
+        file = fl.request.files['file']
+        # Convert the file to bytes
+        img_bytes = file.read()
+        # Get the prediction
+        prediction = predict_cat_image(img_bytes)
+        return fl.jsonify({'prediction': prediction})
+
+
+# Run the app
+if __name__ == '__main__':
+    app.run()

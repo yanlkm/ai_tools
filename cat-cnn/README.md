@@ -2,6 +2,7 @@
 
 ## Overview
 This project implements a Convolutional Neural Network (CNN) to identify whether an image contains a cat or not. The CNN is trained using custom data and is designed to run on environments like Google Colab or Kaggle Jupyter Notebook.
+This CNN is also set as an API using Flask.
 
 ## How CNN Works
 A Convolutional Neural Network (CNN) is a type of deep learning model that processes structured grid data such as images. The main components of a CNN are:
@@ -80,6 +81,35 @@ for epoch in range(num_epochs):
             print(f'Epoch [{epoch + 1}/{num_epochs}], Step [{i + 1}/{total_step}], Loss: {loss.item():.4f}')
     # Save the model checkpoint
     torch.save(model.state_dict(), 'saves/model.ckpt')
+```
+
+## API Setup with Flask
+You can directly use the trained model on `saves/model.pth` to make predictions on new images. The `cnn.py` script sets up a Flask API to serve the model and make predictions.
+
+### Steps:
+1. **Load Model**: Load the trained model from the saved checkpoint file.
+```python
+    cat_identifier_model = CatIdentifier(num_classes=num_classes).to(device)
+    cat_identifier_model.load_state_dict(torch.load('saves/model.pth', weights_only=True))
+    cat_identifier_model.eval()
+```
+2. **Define Prediction Route**: Create a route in Flask to accept image files, preprocess them, and make predictions using the model.
+```python
+@app.route('/predict', methods=['POST'])
+def predict():
+    if fl.request.method == 'POST':
+        # Get the file from the request
+        file = fl.request.files['file']
+        # Convert the file to bytes
+        img_bytes = file.read()
+        # Get the prediction
+        prediction = predict_cat_image(img_bytes)
+        return fl.jsonify({'prediction': prediction})
+```
+3. **Run the API**: Start the Flask server to serve the model and handle prediction requests.
+```python
+if __name__ == '__main__':
+    app.run()
 ```
 
 This README provides a comprehensive guide to understand and use the Cat Identifier CNN.

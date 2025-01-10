@@ -1,8 +1,8 @@
 # imports 
 import torch.nn as nn 
 import torch 
-
-
+import pandas as pd
+import numpy as np
 
 ## create a RNN class from scratch 
 
@@ -29,14 +29,12 @@ class RNN(nn.Module) :
         # activation functions 
         # tanh to determine the new hidden state 
         self.tanh_from_hidden = nn.Tanh()
-        # softmax to predict output probabilities
-        self.softmax_to_output = nn.Softmax()
 
     # create a hidden_state tensor with 0-value initialed
     def hidden_to_zeros(self, batch_size=1) -> torch.Tensor : 
         return torch.zeros(batch_size, self.hidden_size, requires_grad= False)
 
-    def forward(self, hiddden_state  : torch.tensor , input_data : torch.tensor ) -> tuple[torch.tensor, torch.tensor] :
+    def forward(self, hidden_state  : torch.tensor , input_data : torch.tensor ) -> tuple[torch.tensor, torch.tensor] :
         ## pass through the input_to_hidden, hidden_to_hidden, hidden_to_output, tanh_from_hidden, softmax_to_output
         # input to hidden
         input_data = self.input_to_hidden(input_data)
@@ -46,8 +44,54 @@ class RNN(nn.Module) :
         hidden_state = self.tanh_from_hidden(hidden_state + input_data)
         # hidden to output
         output = self.hidden_to_output(hidden_state)
-        # output probabilities
-        output = self.softmax_to_output(output)
+        # return output and hidden state
+        return output, hidden_state
 
+# data formalization
+
+def load_and_process_data(csv_file_path):
+    # load csv file
+    data = pd.read_csv(csv_file_path)
+
+    # filter by country and year
+    grouped_data = data.groupby(["Country", "Year"])
+
+    # create a list of sequences
+    sequences = {}
+
+    # loop over the grouped data
+    for (country, year), group in grouped_data : 
+        # sort the data by month and day
+        group = group.sort_values(by=["Month", "Day"])
+        # get the temperature values
+        temperatures = group["AvgTemperature"].values
+        # add the sequence to the dictionary
+        sequences[(country, year)] = temperatures
+    
+    return sequences
+
+# create a subsequence function
+def create_subsequences(sequence, seq_length):
+    # create a list to hold the subsequences
+    subsequences = []
+    # loop over the sequence
+    for i in range(len(sequence) - seq_length):
+        subsequences.append(sequence[i:i + seq_length + 1])
+    # return the list of subsequences
+    return np.array(subsequences)
+
+
+# generate the input and output data
+def generate_subsequences(sequences, seq_length):
+    all_subsequences = []
+    for key, sequence in sequences.items():
+        subsequences = create_subsequences(sequence, seq_length)
+        all_subsequences.append(subsequences)
+
+    # concatenate all the subsequences
+    all_subsequences = np.concatenate(all_subsequences)
+    X = all_subsequences[:, :-1]
+    y = all_subsequences[:, -1]
+    return X, y
 
 

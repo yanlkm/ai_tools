@@ -49,9 +49,16 @@ class RNN(nn.Module) :
 
 # data formalization
 
+# Data formalization
 def load_and_process_data(csv_file_path):
     # load csv file
     data = pd.read_csv(csv_file_path)
+
+    # handle missing or invalid data
+    data = data.dropna(subset=["AvgTemperature"])
+
+    # remove rows with temperature values less than -50 or greater than 50
+    data = data[(data["AvgTemperature"] >= -60) & (data["AvgTemperature"] <= 60)]    
 
     # filter by country and year
     grouped_data = data.groupby(["Country", "Year"])
@@ -84,12 +91,13 @@ def create_subsequences(sequence, seq_length):
 # generate the input and output data
 def generate_subsequences(sequences, seq_length):
     all_subsequences = []
-    for key, sequence in sequences.items():
-        subsequences = create_subsequences(sequence, seq_length)
-        all_subsequences.append(subsequences)
+    for sequence in sequences.values():
+        if len(sequence) > seq_length: # ensure the sequence is long enough
+            subsequences = create_subsequences(sequence, seq_length)
+            all_subsequences.append(subsequences)
 
     # concatenate all the subsequences
-    all_subsequences = np.concatenate(all_subsequences)
+    all_subsequences = np.concatenate(all_subsequences, axis=0)
     X = all_subsequences[:, :-1]
     y = all_subsequences[:, -1]
     return X, y

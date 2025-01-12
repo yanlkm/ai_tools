@@ -55,7 +55,6 @@ class RNN(nn.Module) :
 
 # data formalization
 
-# Data formalization
 def load_and_process_data(csv_file_path):
     # load csv file
     data = pd.read_csv(csv_file_path)

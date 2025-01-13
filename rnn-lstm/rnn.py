@@ -1,20 +1,17 @@
 # imports 
 import torch.nn as nn
 import torch
-import pandas as pd
-import numpy as np
 import torch.optim as optim
 import utils as utils
 
 
-
-## create a RNN class from scratch 
+# create an RNN class from scratch
 
 
 # input_size : size of the input
 # hidden_size : size of the hidden state at (t-1) time
 # output_size : size of the output of the neural network 
-# batch_size : amount of data to be proceed
+# batch_size : amount of data to be proceeded
 class RNN(nn.Module):
     def __init__(self, input_size: int, hidden_size: int, output_size: int, batch_size: int) -> None:
         super().__init__()
@@ -39,7 +36,7 @@ class RNN(nn.Module):
         return torch.zeros(batch_size, self.hidden_size, requires_grad=False)
 
     def forward(self, hidden_state: torch.tensor, input_data: torch.tensor) -> tuple[torch.tensor, torch.tensor]:
-        ## pass through the input_to_hidden, hidden_to_hidden, hidden_to_output, tanh_from_hidden, softmax_to_output
+        # pass through the input_to_hidden, hidden_to_hidden, hidden_to_output, tanh_from_hidden, softmax_to_output
         # input to hidden
         input_data = self.input_to_hidden(input_data)
         # hidden to hidden
@@ -54,7 +51,7 @@ class RNN(nn.Module):
 
 # train the model
 def train(model: RNN, sequences: dict, seq_length: int, epochs: int, optimizer: optim.Optimizer,
-          loss: nn.Module) -> list:
+          loss: nn.Module, device: torch.device) -> list:
     # training variables
     gradient_norms = []
 
@@ -78,7 +75,7 @@ def train(model: RNN, sequences: dict, seq_length: int, epochs: int, optimizer: 
                 output, hidden_state = model(hidden_state, input_data)
                 # detach the hidden state to prevent backpropagation through time (BPTT)
                 hidden_state = hidden_state.detach()
-                # compute the loss and backpropagate
+                # compute the loss and backpropagation
                 loss_value = loss(output, target)
                 loss_value.backward()
 
@@ -97,4 +94,3 @@ def train(model: RNN, sequences: dict, seq_length: int, epochs: int, optimizer: 
                 gradient_norms.append(total_norm)
                 optimizer.step()
     return gradient_norms
-

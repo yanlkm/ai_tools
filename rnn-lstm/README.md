@@ -1,7 +1,7 @@
-# Recurrent Neural Network (RNN) and Long Short-Term Memory (LSTM) 
+# Recurrent Neural Network (RNN) and Long Short-Term Memory (LSTM)
 
 This is a simple implementation from scratch of an RNN and LSTM to analyze the issue of vanishing/exploding gradients.
-The dataset used is the **history of the weather means** in several countries across the years. 
+The dataset used is the **history of the weather means** in several countries across the years.
 
 ## Quick summary of files architecture
 - `rnn.py`: Implementation of a simple RNN.
@@ -19,9 +19,11 @@ Each time step of the sequence is processed **individually**, and the output at 
 ### 2. Hidden State
 
 The hidden state acts as the memory of the network, allowing it to retain information about previous time steps. At each time step $t$, the hidden state is updated using the current input and the hidden state from the previous step :
+
 $$
 h_t = f(W_{ih} x_t + W_{hh} h_{t-1})
 $$
+
 where:
 - $h_t$ is the hidden state at time step $t$.
 
@@ -30,14 +32,16 @@ In the implemented RNN, the hidden state is updated using:
 $$
 h_t = \tanh(W_{ih} x_t + W_{hh} h_{t-1})
 $$
+
 where $W_{ih}$ and $W_{hh}$ are the weight matrices for the input-to-hidden and hidden-to-hidden connections, respectively.
 
 ### 3. Output Layer
-After computing the hidden state, the RNN generates an output for the current time step using: 
+After computing the hidden state, the RNN generates an output for the current time step using:
 
 $$
 y_t = W_{ho} h_t
 $$
+
 where $W_{ho}$ is the weight matrix for the hidden-to-output connection.
 
 ### 4. Activation Functions
@@ -84,14 +88,14 @@ $$
 f_t = \sigma(W_f \cdot [h_{t-1}, x_t] + b_f)
 $$
 
-- **Input Gate**: Decides what new information to **store* in the cell state (long-term memory).
+- **Input Gate**: Decides what new information to *store* in the cell state (long-term memory).
 
 $$
 i_t = \sigma(W_i \cdot [h_{t-1}, x_t] + b_i)
 $$
 
 $$
-\tilde{C}_t = \tanh(W_C \cdot [h_{t-1}, x_t] + b_C)
+\tilde{C}_t = \tanh(W_C \cdot [h\_{t-1}, x_t] + b_C)
 $$
 
 - **Output Gate**: Decides what information to **output** from the hidden state (short-term memory).
